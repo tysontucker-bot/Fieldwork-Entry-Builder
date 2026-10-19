@@ -122,6 +122,23 @@ p{margin:0 0 12px}
 .file-btn{position:relative;display:inline-block}
 .file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .storage{margin-top:8px}
+.targets{display:grid;gap:8px;margin-top:4px}
+.target-row{display:grid;gap:4px}
+.target-lab{font-size:.8125rem;font-weight:700;color:var(--muted)}
+.tpick summary{list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--sunk);border-radius:8px;padding:8px 32px 8px 10px;position:relative}
+.tpick summary::-webkit-details-marker{display:none}
+.tpick summary::after{content:"\25BE";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.tp-val.empty{color:var(--muted)}
+.tp-panel{border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;padding:8px 10px;background:var(--surface)}
+.tp-sub{font-size:.75rem;font-weight:700;color:var(--muted);margin:6px 0 4px}
+.tp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));gap:4px}
+.tp-grid.wide{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+.prompt-row{margin-top:6px}
+.tp-chip{border:1px solid var(--line);background:var(--surface);border-radius:6px;min-height:36px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
+.tp-chip[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.tp-actions{display:flex;justify-content:space-between;margin-top:6px}
+.target-row input{border:1px solid var(--line);background:var(--sunk);border-radius:8px;padding:8px 10px;width:100%}
+.role-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .sample-note{background:var(--x-bg);border-radius:12px;padding:14px 16px;margin-bottom:14px}
 .sample-note p{margin:0 0 10px}
 .demo-chip{font-size:.6875rem;font-weight:700;background:var(--brand);color:var(--brand-ink);border-radius:999px;padding:2px 8px;vertical-align:middle;margin-left:6px}
@@ -407,6 +424,33 @@ function blk(id, name, start, end, description, options, extra) {
   return Object.assign({ id: id, name: name, start: start, end: end, type: "Restricted", optional: false, description: description, areas: [], areaEnding: "", options: options, tco: STD_T.slice(), ethics: STD_E.slice(), usual: { areas: [], options: [], others: [], word: "" } }, extra || {});
 }
 const WOTW_ = "Word of the Week";
+// Options that get a "which targets?" box when ticked.
+const TARGET_PROMPTS = {
+  "letter identification": { q: "Which letters?", ph: "e.g., A, M, S" , kind: "letters" },
+  "sight word reading": { q: "Which words?", ph: "e.g., the, go, see" },
+  "picture matching": { q: "Which pictures?", ph: "e.g., animals, foods" },
+  "receptive identification": { q: "Which items?", ph: "e.g., cup, ball, shoe" },
+  "object identification": { q: "Which objects?", ph: "e.g., spoon, book" },
+  "functional literacy": { q: "Which words or signs?", ph: "e.g., STOP, EXIT, boys" },
+  "number matching": { q: "Which numbers?", ph: "e.g., 1\u20135" , kind: "numbers" },
+  "receptive number identification": { q: "Which numbers?", ph: "e.g., 1\u201310", kind: "numbers" },
+  "number identification": { q: "Which numbers?", ph: "e.g., 1\u201310" , kind: "numbers" },
+  "counting": { q: "To what number?", ph: "e.g., to 10" },
+  "one-to-one correspondence": { q: "How many items?", ph: "e.g., 1\u20135" , kind: "numbers" },
+  "quantity identification": { q: "Which quantities?", ph: "e.g., 1\u20133" , kind: "numbers" },
+  "quantity matching": { q: "Which quantities?", ph: "e.g., 1\u20135" , kind: "numbers" },
+  "utilizing AAC": { q: "Which words or icons?", ph: "e.g., more, help, all done" },
+  "following group directions": { q: "Which directions?", ph: "e.g., sit down, line up" },
+  "following directions": { q: "Which directions?", ph: "e.g., stand up, walk" },
+  "following motor directions": { q: "Which directions?", ph: "e.g., jump, throw" },
+  "motor imitation": { q: "Which movements?", ph: "e.g., clap, arms up" },
+  "teaching appropriate play": { q: "Which play skills?", ph: "e.g., slide, swing, ball" },
+  "folder tasks": { q: "Which folder tasks?", ph: "e.g., color sort, shape match" },
+  "matching": { q: "What was matched?", ph: "e.g., shapes, colors" },
+  "sorting": { q: "Sorted by what?", ph: "e.g., color, size" },
+  "fine-motor task": { q: "Which task?", ph: "e.g., lacing, pegboard" },
+
+};
 function U(options, areas, others) { return { areas: areas || [], options: options, others: others || [], word: "" }; }
 const CONF_OPTIONS = ["responding to caregiver emails about student progress","preparing instructional materials","graphing or reviewing student data","collaborating with staff about student programming","observed my para working with a student","trained my para on behavior management strategies","trained my para on de-escalation strategies","modeled strategies for my para","gave my para performance feedback"];
 const CONF_OPTION_CODES = {
@@ -427,7 +471,7 @@ const DEFAULT_SCHEDULE = [
   blk("bathroom_attendance","Bathroom / Attendance","09:10","09:15","Implemented individualized self-care and classroom-routine skill-acquisition procedures using prompting, reinforcement, and prompt fading to increase independent participation.",["teaching attendance routine","identifying self photo","selecting picture","placing picture under \u201cAt School\u201d","placing picture under \u201cAt Home\u201d","walking to the attendance board","toileting","handwashing",PR],{usual:U(["teaching attendance routine","identifying self photo","placing picture under \u201cAt School\u201d","walking to the attendance board",PR])}),
   blk("recess","Recess","09:15","09:30","Implemented individualized communication, social, play, and behavior-intervention procedures using prompting, reinforcement, and antecedent strategies.",["utilizing playground communication board","redirecting unsafe oral behavior","redirecting elopement","teaching appropriate play","implementing environmental antecedent strategies","securing playground gates with carabiners",PR],{usual:U(["utilizing playground communication board","redirecting unsafe oral behavior","teaching appropriate play","implementing environmental antecedent strategies","securing playground gates with carabiners",PR])}),
   blk("water_break","Water Break","09:40","09:55","Implemented individualized communication and regulation skill-acquisition procedures for requesting a drink, using prompting, programmed reinforcement, and a calming sensory video as an antecedent strategy.",["requesting a drink","utilizing AAC","waiting for a drink","drinking independently","attending to the calming sensory video","remaining seated",PR],{tco:["G.5","G.7","G.8"],usual:U(["requesting a drink","utilizing AAC","attending to the calming sensory video",PR])}),
-  blk("math","Math","09:55","10:15","Implemented an individualized mathematics skill-acquisition program using systematic prompting, reinforcement, and prompt fading to increase independent responding.",["number matching","counting","one-to-one correspondence","quantity identification",PR],{usual:U(["number matching","counting","quantity identification",PR])}),
+  blk("math","Math","09:55","10:15","Implemented an individualized mathematics skill-acquisition program using systematic prompting, reinforcement, and prompt fading to increase independent responding.",["number matching","receptive number identification","counting","one-to-one correspondence","quantity identification",PR],{usual:U(["number matching","counting","quantity identification",PR])}),
   blk("snack","Snack","10:15","10:30","Implemented individualized communication, self-help, feeding, and independence skill-acquisition procedures using prompting and programmed reinforcement.",["utilizing AAC","requesting","teaching signs \u201cmore\u201d and \u201ceat\u201d","opening containers","utensil use","independent cleanup",PR],{areas:["Communication","Self-help","Feeding","Independence"],areaEnding:"using prompting and programmed reinforcement",usual:U(["utilizing AAC","requesting","independent cleanup",PR],["Communication","Self-help","Independence"])}),
   blk("bathroom_1","Bathroom","10:30","10:40","Implemented an individualized toileting and self-care skill-acquisition program using prompting, reinforcement, and systematic prompt fading.",["toileting sequence","handwashing","clothing management",PR],{usual:U(["toileting sequence","handwashing",PR])}),
   blk("conference","Conference","10:40","11:00","Completed indirect fieldwork activities supporting individualized client programming.",CONF_OPTIONS,{type:"Unrestricted",optional:true,tco:["H.8"],ethics:["2.08","2.09","2.10"],optionCodes:CONF_OPTION_CODES,usual:U([])}),
@@ -440,7 +484,10 @@ const DEFAULT_SCHEDULE = [
   blk("folders","Parent Communication","13:45","14:00","Communicated individualized student progress and behavior information with caregivers, including progress toward skill-acquisition targets and behavior or intervention-related information.",["writing in take-home folders","shared skill-acquisition progress","shared behavior information","shared intervention updates"],{type:"Unrestricted",tco:["H.8"],ethics:["2.08","2.09"],usual:U([])}),
   blk("prep_to_go_home","Prep to Go Home","14:00","14:15","Implemented individualized independence and functional-routine skill-acquisition procedures using prompting, reinforcement, and prompt fading to increase independent completion of the end-of-day routine.",["retrieving backpack","checking required belongings","identifying bus number",PR],{usual:U(["retrieving backpack","checking required belongings","identifying bus number",PR])})
 ];
-const SCHEDULE_VERSION = 25;
+const SCHEDULE_VERSION = 31;
+const COACH_OPT = "coached my para (unrestricted)";
+const OLD_COACH_OPT = "coached my para on implementation";
+DEFAULT_SCHEDULE.forEach(function (b) { if (b.type === "Restricted" && b.options.indexOf(COACH_OPT) < 0) b.options.push(COACH_OPT); });
 const OLD_WORKSHEET_DESC = "Created individualized instructional worksheets aligned with IEP goals to provide structured practice opportunities and support acquisition and generalization of academic skills.";
 const MY_CAT = "My templates";
 const TEMPLATE_CATEGORIES = [
@@ -579,6 +626,21 @@ const NEW_TEMPLATES_V21 = [
 ];
 TEMPLATE_CAT_BY_ID.t_groupdata = "Data & measurement";
 NEW_TEMPLATES_V21.forEach(function (t) { DEFAULT_TEMPLATES.push(t); });
+const NEW_TEMPLATES_V26 = [
+  Object.assign(tpl("t_thevis","Designed The Vis visual schedule","Designed an AI-assisted classroom visual schedule system based on behavior-analytic procedures, using visual supports and time-based prompts to promote predictable transitions, independent responding, and consistent implementation across staff.",["G.5"],["2.14","3.01"],["Now/Next board","substitute directions","scheduled bathroom timers","QR-code bathroom logging","toileting data sent to a Google Sheet","phone remote for meetings and videos","attendance (who's here)","tested and revised the system"]),{optionCodes:{"substitute directions":{tco:["H.6"],ethics:["2.10"]},"scheduled bathroom timers":{tco:["G.3"]},"QR-code bathroom logging":{tco:["C.9"],ethics:["2.17"]},"toileting data sent to a Google Sheet":{tco:["C.9"],ethics:["2.17"]}}})
+];
+TEMPLATE_CAT_BY_ID.t_thevis = "Materials & visuals";
+NEW_TEMPLATES_V26.forEach(function (t) { DEFAULT_TEMPLATES.push(t); });
+const NEW_TEMPLATES_V27 = [
+  Object.assign(tpl("t_meetingapp","Designed the Afternoon Meeting app","Designed an AI-assisted interactive group-meeting system based on behavior-analytic procedures, using visual supports and structured response opportunities to promote attending, communication, and group participation.",["G.5","G.7"],["2.14","3.01"],["feelings check-in with student choice board","whose-turn prompts","what's-next bar","News-2-You article and questions","Letter of the Week video","Word of the Week visuals, videos, and ASL","picture symbols for responses","iPad remote for running it from my seat","tested and revised the system"]),{optionCodes:{"Word of the Week visuals, videos, and ASL":{tco:["G.9","G.15"]},"Letter of the Week video":{tco:["G.9"]},"whose-turn prompts":{tco:["G.14"]}}})
+];
+TEMPLATE_CAT_BY_ID.t_meetingapp = "Materials & visuals";
+NEW_TEMPLATES_V27.forEach(function (t) { DEFAULT_TEMPLATES.push(t); });
+const NEW_TEMPLATES_V28 = [
+  tpl("t_obspres","Prepared supervision observation presentation","Prepared a presentation for a supervision observation on designing behavior-analytic tools for accurate, efficient fieldwork documentation, including mapping common activities to TCO and Ethics Code items.",["H.8"],["1.06","3.11"],["built slides","wrote speaker notes","added screenshots of each tool version","mapped common activities to TCO and Ethics codes","wrote responsible-use guidelines","prepared the live demo","planned with my supervisor","rehearsed the presentation"])
+];
+TEMPLATE_CAT_BY_ID.t_obspres = "Working with others";
+NEW_TEMPLATES_V28.forEach(function (t) { DEFAULT_TEMPLATES.push(t); });
 DEFAULT_TEMPLATES.forEach(function (t) { t.category = TEMPLATE_CAT_BY_ID[t.id] || MY_CAT; });
 // Demo build: generic sample classroom schedule and scrubbed templates.
 (function () {
@@ -616,6 +678,40 @@ DEFAULT_TEMPLATES.forEach(function (t) { t.category = TEMPLATE_CAT_BY_ID[t.id] |
     if (t.id === "t_cardmaker") t.name = "Created matching cards";
     if (t.id === "t_worksheets") t.description = t.description.replace("Daily Work worksheets", "worksheets");
   });
+})();
+// Starter schedules for different roles, plus admin-friendly activities.
+(function () {
+  const ADMIN = [
+    blk("staff_checkin","Morning Staff Check-In","07:45","08:00","Collaborated with campus staff to coordinate individualized behavior supports and review plans for the day.",["reviewed behavior plans with staff","planned supports for a student","shared data or updates","assigned staff to supports"],{type:"Unrestricted",optional:true,tco:["H.8"],ethics:["2.10"],usual:U([])}),
+    blk("observations","Classroom Observations","08:30","09:30","Observed classroom instruction and behavior-plan implementation to collect data and evaluate the effectiveness and integrity of behavior-analytic procedures.",["observed instruction","collected behavior data","observed behavior-plan implementation","scored procedural integrity","observed a student of concern"],{type:"Unrestricted",optional:true,tco:["C.3","H.6","H.7"],ethics:["2.17","2.18"],optionCodes:{"observed a student of concern":{tco:["F.5"]}},usual:U([])}),
+    blk("coaching","Staff Coaching & Feedback","09:30","10:00","Coached staff on implementing behavior-analytic procedures using instructions, modeling, rehearsal, and performance feedback.",["provided instructions","modeled a strategy","had staff rehearse","gave performance feedback","coached on de-escalation","coached on data collection"],{type:"Unrestricted",optional:true,tco:["H.6","H.8"],ethics:["2.10"],optionCodes:{"modeled a strategy":{tco:["G.9"]},"coached on de-escalation":{ethics:["2.15"]}},usual:U([])}),
+    blk("data_review","Data Review","10:00","10:30","Reviewed and analyzed graphed student data to evaluate intervention effectiveness and make data-based decisions about program continuation or modification.",["reviewed behavior data","reviewed skill-acquisition data","identified trends","recommended program changes","updated graphs"],{type:"Unrestricted",optional:true,tco:["C.11","H.7"],ethics:["2.17","2.18"],usual:U([])}),
+    blk("student_support","Student Behavior Support","10:30","11:00","Implemented individualized behavior-intervention procedures with a student, including antecedent strategies, prompting of replacement behavior, and programmed reinforcement.",["implemented antecedent strategies","prompted a replacement behavior","delivered reinforcement","used de-escalation strategies","supported a transition"],{optional:true,tco:["G.5","H.3"],ethics:["2.14","2.15"],usual:U([])}),
+    blk("small_group","Small-Group Instruction","12:30","13:00","Implemented individualized skill-acquisition procedures in a small group using prompting, modeling, and programmed reinforcement.",["social skills","communication skills","academic skills","self-regulation skills",PR],{optional:true,tco:["G.7","G.8"],ethics:["2.14","3.01"],usual:U([])}),
+    blk("plan_work","FBA / Behavior Plan Work","13:00","14:00","Completed functional assessment and behavior-plan development activities to design function-based interventions with appropriate contextual fit.",["reviewed records","summarized ABC data","wrote a hypothesis statement","drafted or revised a behavior plan","selected a replacement behavior"],{type:"Unrestricted",optional:true,tco:["F.7","H.2"],ethics:["2.13","2.14"],usual:U([])}),
+    blk("parent_comm","Parent Communication","14:00","14:30","Communicated individualized student progress and behavior information with caregivers, including progress toward targets and behavior or intervention-related information.",["phone call","email","in-person meeting","shared behavior information","shared intervention updates"],{type:"Unrestricted",optional:true,tco:["H.8"],ethics:["2.08","2.09"],usual:U([])}),
+    blk("meetings","ARD / IEP / MTSS Meetings","14:30","15:30","Participated in team meetings to share data-based information and collaborate on goals, behavior supports, and intervention decisions.",["ARD/IEP meeting","MTSS or RTI meeting","presented student data","discussed behavior supports","discussed goals"],{type:"Unrestricted",optional:true,tco:["H.8"],ethics:["2.09","2.10"],usual:U([])})
+  ];
+  window.__ROLE_SCHEDULES__ = { teacher: DEFAULT_SCHEDULE.slice(), admin: ADMIN, blank: [] };
+  TEMPLATE_CATEGORIES.push({ name: "Direct work with students", hint: "Behavior support and instruction you deliver yourself" });
+  const extra = [
+    Object.assign(tpl("t_observe","Conducted a classroom observation","Observed classroom instruction and behavior-plan implementation to collect data and evaluate the effectiveness and integrity of behavior-analytic procedures.",["C.3","H.6","H.7"],["2.17","2.18"],["collected behavior data","scored procedural integrity","observed a student of concern","gave feedback afterward"]),{category:"Working with others"}),
+    Object.assign(tpl("t_coach","Coached a teacher","Coached a teacher on implementing individualized behavior-analytic procedures using instructions, modeling, and performance feedback.",["H.6","H.8"],["2.10"],["behavior plan implementation","reinforcement systems","de-escalation strategies","data collection","prompting procedures"]),{category:"Working with others"}),
+    Object.assign(tpl("t_direct","Provided behavior support to a student","Implemented individualized behavior-intervention procedures with a student, including antecedent strategies, prompting of replacement behavior, and programmed reinforcement.",["G.5","H.3"],["2.14","2.15"],["implemented antecedent strategies","prompted a replacement behavior","delivered reinforcement","used de-escalation strategies"]),{type:"Restricted",category:"Direct work with students"})
+  ];
+  extra.forEach(function (t) { DEFAULT_TEMPLATES.push(t); });
+})();
+// Bring the demo in line with the current app: coaching option, receptive number ID, no personal templates.
+(function () {
+  const addCoach = function (list) { list.forEach(function (b) { if (b.type === "Restricted" && b.options.indexOf(COACH_OPT) < 0) b.options.push(COACH_OPT); }); };
+  addCoach(DEFAULT_SCHEDULE);
+  if (window.__ROLE_SCHEDULES__) { addCoach(window.__ROLE_SCHEDULES__.admin); window.__ROLE_SCHEDULES__.teacher = DEFAULT_SCHEDULE.slice(); }
+  const mb = DEFAULT_SCHEDULE.find(function (b) { return b.id === "math"; });
+  if (mb && mb.options.indexOf("receptive number identification") < 0) mb.options.splice(1, 0, "receptive number identification");
+  const personal = ["t_thevis", "t_meetingapp", "t_obspres"];
+  for (let i = DEFAULT_TEMPLATES.length - 1; i >= 0; i--) if (personal.indexOf(DEFAULT_TEMPLATES[i].id) >= 0) DEFAULT_TEMPLATES.splice(i, 1);
+  const w = DEFAULT_TEMPLATES.find(function (t) { return t.id === "t_worksheets"; });
+  if (w) w.description = w.description.replace("Daily Work worksheets", "worksheets");
 })();
 
 
@@ -946,9 +1042,15 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       base = "Implemented individualized " + joinList(ordered) + " skill-acquisition procedures " + (def.areaEnding || "using prompting and programmed reinforcement") + ".";
     }
     let text = base.trim();
-    const details = (picks.options || []).filter(function (o) { return o !== WOTW; });
+    if ((picks.options || []).indexOf(COACH_OPT) >= 0) text = "Coached a paraprofessional on accurate implementation of individualized behavior-analytic procedures during " + (d.activity || "the activity") + ", using instructions, modeling, and performance feedback.";
+    else if ((picks.options || []).indexOf(OLD_COACH_OPT) >= 0) text = text.replace(/\.\s*$/, "") + ", while coaching a paraprofessional on accurate implementation of the procedures.";
+    const details = (picks.options || []).filter(function (o) { return o !== WOTW && o !== COACH_OPT && o !== OLD_COACH_OPT; }).map(function (o) {
+      const t = picks.targets && picks.targets[o] ? String(picks.targets[o]).trim() : "";
+      return t ? o + ": " + t : o;
+    });
     if ((picks.options || []).indexOf(WOTW) >= 0 && (picks.word || "").trim()) details.push(WOTW + ": " + picks.word.trim());
     (picks.others || []).forEach(function (o) { if (o.trim()) details.push(o.trim()); });
+    if (picks.targets && String(picks.targets.__prompts || "").trim()) details.push("prompt levels: " + String(picks.targets.__prompts).trim());
     const eg = (picks.details || "").trim();
     if (details.length) text = text.replace(/\.\s*$/, "") + " (i.e., " + details.join("; ") + (eg ? "; e.g., " + eg : "") + ").";
     else if (eg) text = text.replace(/\.\s*$/, "") + " (e.g., " + eg + ").";
@@ -973,6 +1075,11 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     const t = (d.tco || []).slice(), e = (d.ethics || []).slice();
     oc.tco.forEach(function (x) { if (t.indexOf(x) < 0) t.push(x); });
     oc.ethics.forEach(function (x) { if (e.indexOf(x) < 0) e.push(x); });
+    const po = (d.picks && d.picks.options) || [];
+    if (po.indexOf(COACH_OPT) >= 0 || po.indexOf(OLD_COACH_OPT) >= 0) {
+      if (oc.tco.indexOf("H.6") < 0) oc.tco.push("H.6"); if (oc.ethics.indexOf("2.10") < 0) oc.ethics.push("2.10");
+      if (t.indexOf("H.6") < 0) t.push("H.6"); if (e.indexOf("2.10") < 0) e.push("2.10");
+    }
     return { tco: t, ethics: e, added: oc };
   }
   function splitCodes(summary) {
@@ -1007,6 +1114,27 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         else s.templates.push(clone(dt));
       });
     }
+    if ((s.v || 0) < 31) s.schedule.forEach(function (b) {
+      const i = (b.options || []).indexOf(OLD_COACH_OPT); if (i >= 0) b.options[i] = COACH_OPT;
+      if (b.usual && b.usual.options) b.usual.options = b.usual.options.filter(function (o) { return o !== OLD_COACH_OPT; });
+    });
+    if ((s.v || 0) < 30) s.schedule.forEach(function (b) { if (b.type === "Restricted") { b.options = b.options || []; if (b.options.indexOf(COACH_OPT) < 0) b.options.push(COACH_OPT); } });
+    if ((s.v || 0) < 29) {
+      const mb = s.schedule.find(function (b) { return b.id === "math"; });
+      if (mb && (mb.options || []).indexOf("receptive number identification") < 0) {
+        mb.options = mb.options || []; const k = mb.options.indexOf("number matching");
+        mb.options.splice(k >= 0 ? k + 1 : 0, 0, "receptive number identification");
+      }
+    }
+    if ((s.v || 0) < 28) NEW_TEMPLATES_V28.forEach(function (nt) {
+      if (!s.templates.some(function (t) { return t.id === nt.id || t.name.trim().toLowerCase() === nt.name.toLowerCase(); })) { const c = clone(nt); c.category = TEMPLATE_CAT_BY_ID[c.id]; s.templates.push(c); }
+    });
+    if ((s.v || 0) < 27) NEW_TEMPLATES_V27.forEach(function (nt) {
+      if (!s.templates.some(function (t) { return t.id === nt.id || t.name.trim().toLowerCase() === nt.name.toLowerCase(); })) { const c = clone(nt); c.category = TEMPLATE_CAT_BY_ID[c.id]; s.templates.push(c); }
+    });
+    if ((s.v || 0) < 26) NEW_TEMPLATES_V26.forEach(function (nt) {
+      if (!s.templates.some(function (t) { return t.id === nt.id || t.name.trim().toLowerCase() === nt.name.toLowerCase(); })) { const c = clone(nt); c.category = TEMPLATE_CAT_BY_ID[c.id]; s.templates.push(c); }
+    });
     if ((s.v || 0) < 25 && !s.schedule.some(function (b) { return b.id === "sensory_meeting"; })) {
       const nb = clone(DEFAULT_SCHEDULE.find(function (b) { return b.id === "sensory_meeting"; }));
       const qi = s.schedule.findIndex(function (b) { return b.id === "quiet_time"; });
@@ -1071,7 +1199,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     s.templates.forEach(function (t) { t.options = t.options || []; if (!t.category) t.category = TEMPLATE_CAT_BY_ID[t.id] || MY_CAT; });
     s.v = SCHEDULE_VERSION;
     s.schedule.forEach(function (b) { b.usual = b.usual || { areas: [], options: [], others: [], word: "" }; b.optional = !!b.optional; });
-    return { v: s.v || SCHEDULE_VERSION, custom: !!s.custom, schedule: s.schedule, templates: s.templates || [] };
+    return { v: s.v || SCHEDULE_VERSION, custom: !!s.custom, rolePicked: s.rolePicked || "", schedule: s.schedule, templates: s.templates || [] };
   }
   const S = {
     days: {},             // date -> entries[]
@@ -1245,6 +1373,19 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     const v = $("#view-today"); v.replaceChildren();
     if (Q && Q.date === S.date) { renderQuick(v); return; }
     if (lastTodayDate !== S.date) { showWeekendSchedule = false; lastTodayDate = S.date; }
+    if (STANDALONE && window.__ROLE_SCHEDULES__ && ((!S.settings.rolePicked && !S.settings.custom) || S.forcePick)) {
+      const pick = function (role) { S.settings.schedule = clone(window.__ROLE_SCHEDULES__[role] || []); S.settings.rolePicked = role; S.forcePick = false; persistSettings(); render(); };
+      v.appendChild(h("section", { class: "panel role-pick" }, [
+        h("h2", { text: "Welcome! What does your day look like?" }),
+        h("p", { class: "muted", text: "Pick a starting schedule. You can change every block, time, and activity afterward on the Schedule tab." }),
+        h("div", { class: "role-grid" }, [
+          h("button", { class: "cat", type: "button", onclick: function () { pick("teacher"); } }, [h("span", { class: "tpl-name", text: "Classroom teacher" }), h("span", { class: "muted small", text: "A full school day of instruction blocks, mostly restricted" })]),
+          h("button", { class: "cat", type: "button", onclick: function () { pick("admin"); } }, [h("span", { class: "tpl-name", text: "Administrator or campus leader" }), h("span", { class: "muted small", text: "Observations, coaching, data review, behavior support, meetings" })]),
+          h("button", { class: "cat", type: "button", onclick: function () { pick("blank"); } }, [h("span", { class: "tpl-name", text: "Start blank" }), h("span", { class: "muted small", text: "Build your own schedule from scratch" })])
+        ])
+      ]));
+      return;
+    }
     if (STANDALONE && !allEntries().length && !S.hideSample) {
       v.appendChild(h("div", { class: "sample-note" }, [
         h("p", {}, [h("strong", { text: "New here? " }), "Load a sample week to see how logging, the calendar, and the spreadsheet download work. You can clear it anytime from Export > Backup."]),
@@ -1322,7 +1463,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   }
   function usualPicks(b) {
     const u = b.usual || {};
-    return { areas: (u.areas || []).filter(function (a) { return (b.areas || []).indexOf(a) >= 0; }), options: (u.options || []).filter(function (o) { return (b.options || []).indexOf(o) >= 0; }), others: (u.others || []).slice(), word: u.word || "", details: "" };
+    return { areas: (u.areas || []).filter(function (a) { return (b.areas || []).indexOf(a) >= 0; }), options: (u.options || []).filter(function (o) { return (b.options || []).indexOf(o) >= 0; }), others: (u.others || []).slice(), word: u.word || "", details: "", targets: {} };
   }
   function rememberWord(blockId, picks) {
     const b = blockDef(blockId); if (!b || !picks || picks.options.indexOf(WOTW) < 0) return;
@@ -1353,7 +1494,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     while (days < 5) {
       const dow = d.getDay(), iso = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
       if (dow !== 0 && dow !== 6) {
-        S.settings.schedule.forEach(function (b) { if (b.optional && days % 2) return; const n = newFromBlock(b); n.date = iso; n.summary = buildSummary(n, b); upsertEntry(n); });
+        S.settings.schedule.forEach(function (b, bi) { if (b.optional && (bi + days) % 3 === 0) return; const n = newFromBlock(b); n.date = iso; n.summary = buildSummary(n, b); upsertEntry(n); });
         days++;
       } else if (dow === 6) {
         [["t_token", "10:00", "11:00"], ["t_graphs", "11:00", "12:00"]].forEach(function (x) {
@@ -1428,8 +1569,11 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       if (b.options && b.options.length) {
         const wordIn = h("input", { type: "text", class: "q-word", value: r.picks.word || "", placeholder: "Word of the Week", "aria-label": "Word of the Week for " + b.name, hidden: r.picks.options.indexOf(WOTW) < 0, oninput: function () { r.picks.word = this.value; } });
         if (b.areas && b.areas.length) body.appendChild(h("span", { class: "q-lab", text: "What you did" }));
-        body.appendChild(pills(b.options, r.picks.options, "", function () { wordIn.hidden = r.picks.options.indexOf(WOTW) < 0; }));
+        const qtr = targetRows(b.options, r.picks, null);
+        body.appendChild(pills(b.options, r.picks.options, "", function () { wordIn.hidden = r.picks.options.indexOf(WOTW) < 0; qtr.sync(); }));
         if (b.options.indexOf(WOTW) >= 0) body.appendChild(wordIn);
+        if (qtr.any) body.appendChild(qtr.el);
+        if (b.type === "Restricted") body.appendChild(promptRow(r.picks, null));
       }
       body.appendChild(h("input", { type: "text", class: "q-other", value: r.other, placeholder: "Anything else? Separate with ;", "aria-label": "Other activities for " + b.name, oninput: function () { r.other = this.value; } }));
       card.appendChild(body);
@@ -1442,6 +1586,69 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       h("button", { class: "btn btn-quiet", type: "button", text: "Cancel", onclick: function () { Q = null; render(); } }),
       h("span", { class: "muted small" }, [count])
     ]));
+  }
+  // Compact dropdown of tappable letters or numbers; stores a readable string like "A, M, S" or "1\u20135, 8".
+  const UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""), LOWER = "abcdefghijklmnopqrstuvwxyz".split("");
+  const NUMS = []; for (let n = 0; n <= 20; n++) NUMS.push(String(n));
+  const PROMPT_LEVELS = ["independent", "gestural", "verbal", "visual", "model", "partial physical", "full physical"];
+  const PROMPT_KEY = "__prompts";
+  function parseTargets(str, kind) {
+    const set = {}; String(str || "").split(",").forEach(function (part) {
+      const p = part.trim(); if (!p) return;
+      const r = kind === "numbers" ? p.match(/^(\d+)\s*[\u2013-]\s*(\d+)$/) : null;
+      if (r) { for (let n = +r[1]; n <= +r[2] && n - +r[1] < 200; n++) set[String(n)] = 1; } else set[p] = 1;
+    });
+    return set;
+  }
+  function formatTargets(set, kind) {
+    const keys = Object.keys(set);
+    if (kind === "prompts") return keys.sort(function (a, b) { return PROMPT_LEVELS.indexOf(a) - PROMPT_LEVELS.indexOf(b); }).join(", ");
+    if (kind === "letters") { const order = UPPER.concat(LOWER); return keys.sort(function (a, b) { const x = order.indexOf(a), y = order.indexOf(b); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y) || a.localeCompare(b); }).join(", "); }
+    const nums = keys.filter(function (k) { return /^\d+$/.test(k); }).map(Number).sort(function (a, b) { return a - b; });
+    const other = keys.filter(function (k) { return !/^\d+$/.test(k); });
+    const out = []; let i = 0;
+    while (i < nums.length) { let j = i; while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++; out.push(j - i >= 2 ? nums[i] + "\u2013" + nums[j] : (j > i ? nums[i] + ", " + nums[j] : String(nums[i]))); i = j + 1; }
+    return out.concat(other).join(", ");
+  }
+  function targetPicker(o, tp, picks, onInput) {
+    const set = parseTargets(picks.targets[o], tp.kind);
+    const val = h("span", { class: "tp-val" });
+    const show = function () { const s = formatTargets(set, tp.kind); val.textContent = s || "Tap to choose"; val.classList.toggle("empty", !s); };
+    const det = h("details", { class: "tpick" }, [h("summary", { "aria-label": o === PROMPT_KEY ? tp.q : o + ": " + tp.q }, [val])]);
+    const chip = function (k) {
+      const b = h("button", { type: "button", class: "tp-chip", "aria-pressed": set[k] ? "true" : "false", text: k, onclick: function () {
+        if (set[k]) delete set[k]; else set[k] = 1;
+        b.setAttribute("aria-pressed", set[k] ? "true" : "false");
+        picks.targets[o] = formatTargets(set, tp.kind); show(); if (onInput) onInput();
+      } });
+      return b;
+    };
+    const panel = h("div", { class: "tp-panel" });
+    const grid = function (label, items) { panel.appendChild(h("p", { class: "tp-sub", text: label })); const g = h("div", { class: "tp-grid" }); items.forEach(function (k) { g.appendChild(chip(k)); }); panel.appendChild(g); };
+    if (tp.kind === "letters") { grid("Uppercase", UPPER); grid("Lowercase", LOWER); }
+    else if (tp.kind === "prompts") { grid("Prompt levels", PROMPT_LEVELS); panel.querySelector(".tp-grid").classList.add("wide"); }
+    else grid("Numbers", NUMS);
+    panel.appendChild(h("div", { class: "tp-actions" }, [
+      h("button", { type: "button", class: "link-btn", text: "Clear", onclick: function () { Object.keys(set).forEach(function (k) { delete set[k]; }); panel.querySelectorAll(".tp-chip").forEach(function (b) { b.setAttribute("aria-pressed", "false"); }); picks.targets[o] = ""; show(); if (onInput) onInput(); } }),
+      h("button", { type: "button", class: "link-btn", text: "Done", onclick: function () { det.open = false; } })
+    ]));
+    det.appendChild(panel); show();
+    return det;
+  }
+  function promptRow(picks, onInput) {
+    picks.targets = picks.targets || {};
+    return h("label", { class: "target-row prompt-row" }, [h("span", { class: "target-lab", text: "Prompt levels used (optional)" }), targetPicker(PROMPT_KEY, { q: "Prompt levels used", kind: "prompts" }, picks, onInput)]);
+  }
+  function targetRows(options, picks, onInput) {
+    picks.targets = picks.targets || {};
+    const rows = {}, wrap = h("div", { class: "targets" });
+    options.forEach(function (o) {
+      const tp = TARGET_PROMPTS[o]; if (!tp) return;
+      const inp = tp.kind ? targetPicker(o, tp, picks, onInput) : h("input", { type: "text", value: picks.targets[o] || "", placeholder: tp.ph, "aria-label": o + ": " + tp.q, oninput: function () { picks.targets[o] = this.value; if (onInput) onInput(); } });
+      const row = h("label", { class: "target-row", hidden: picks.options.indexOf(o) < 0 }, [h("span", { class: "target-lab", text: o.charAt(0).toUpperCase() + o.slice(1) + ": " + tp.q }), inp]);
+      rows[o] = row; wrap.appendChild(row);
+    });
+    return { el: wrap, sync: function () { Object.keys(rows).forEach(function (o) { rows[o].hidden = picks.options.indexOf(o) < 0; }); }, any: Object.keys(rows).length > 0 };
   }
   function pills(items, selected, cls, after) {
     const wrap = h("div", { class: "checks " + (cls || "") });
@@ -1462,6 +1669,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       if (!r.include) { if (e) { removeEntry(e); removed++; } return; }
       const n = e ? clone(e) : newFromBlock(b);
       n.date = Q.date; n.picks = r.picks;
+      if (b.type === "Restricted") n.type = r.picks.options.indexOf(COACH_OPT) >= 0 ? "Unrestricted" : "Restricted";
       if (!n.summaryEdited) n.summary = buildSummary(n, b);
       if (e && e.exported && n.summary !== e.summary) n.exported = false;
       upsertEntry(n); rememberWord(b.id, r.picks); saved++;
@@ -1547,7 +1755,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   function openEditor(d) {
     const def = d.blockId ? blockDef(d.blockId) : null;
     const tdef = !def && d.templateId ? templateDef(d.templateId) : null;
-    const odef = def || (tdef ? { description: d.base, areas: [], options: (tdef.options || []).slice() } : null);
+    const odef = def || (tdef ? { description: d.base, areas: [], options: (tdef.options || []).slice(), optionCodes: tdef.optionCodes } : null);
     d.picks = d.picks || { areas: [], options: [], others: [], word: "", details: "" };
     ["areas", "options", "others"].forEach(function (k) { d.picks[k] = d.picks[k] || []; });
     d.tco = d.tco || []; d.ethics = d.ethics || [];
@@ -1593,8 +1801,15 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     // options
     if (odef && odef.options && odef.options.length) {
       const wordWrap = h("div", { class: "word", hidden: d.picks.options.indexOf(WOTW) < 0 }, [field("Word of the Week", h("input", { type: "text", value: d.picks.word || "", placeholder: "Enter the word", oninput: function () { d.picks.word = this.value; refresh(); } }))]);
-      const g = checkGroup("What specifically did you do?", odef.options, d.picks.options, function () { wordWrap.hidden = d.picks.options.indexOf(WOTW) < 0; refresh(); });
+      const tr = targetRows(odef.options, d.picks, refresh);
+      const g = checkGroup("What specifically did you do?", odef.options, d.picks.options, function () {
+        wordWrap.hidden = d.picks.options.indexOf(WOTW) < 0; tr.sync();
+        if (def && def.type === "Restricted") { d.type = d.picks.options.indexOf(COACH_OPT) >= 0 ? "Unrestricted" : "Restricted"; const r = body.querySelector("#type-" + d.type); if (r) r.checked = true; }
+        refresh();
+      });
       g.appendChild(wordWrap);
+      if (tr.any) g.appendChild(tr.el);
+      if (def && def.type === "Restricted") g.appendChild(promptRow(d.picks, refresh));
       body.appendChild(g);
     }
     // others / details
@@ -2146,7 +2361,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     function save() {
       sched.forEach(function (b) { if (!b.id) b.id = "b_" + uid(); b.name = b.name.trim() || "Untitled block"; });
       tpls.forEach(function (t) { t.name = t.name.trim() || "Untitled"; });
-      S.settings = { v: SCHEDULE_VERSION, custom: true, schedule: sched, templates: tpls }; persistSettings(); render(); toast("Settings saved.");
+      S.settings = { v: SCHEDULE_VERSION, custom: true, rolePicked: S.settings.rolePicked || "", schedule: sched, templates: tpls }; persistSettings(); render(); toast("Settings saved.");
     }
     v.appendChild(h("section", { class: "panel" }, [
       h("h2", { text: "Daily schedule" }),
@@ -2154,6 +2369,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       schedList,
       h("div", { class: "set-actions" }, [
         h("button", { class: "btn btn-quiet", type: "button", text: "Add block", onclick: function () { sched.push({ id: "b_" + uid(), name: "New block", start: "08:00", end: "08:15", type: "Restricted", optional: false, description: "", areas: [], areaEnding: "", options: [], tco: ["G.7", "G.8"], ethics: ["2.14", "3.01"], usual: { areas: [], options: [], others: [], word: "" } }); drawSched(); schedList.lastChild.open = true; } }),
+        (STANDALONE && window.__ROLE_SCHEDULES__) ? h("button", { class: "btn btn-quiet", type: "button", text: "Choose a different starter schedule", onclick: function () { S.forcePick = true; S.tab = "today"; render(); window.scrollTo(0, 0); } }) : null,
         h("button", { class: "btn btn-quiet", type: "button", text: "Start with an empty schedule", onclick: function () { sched.splice(0, sched.length); drawSched(); dirty.textContent = "Schedule cleared. Add your own blocks, then save."; } }),
         h("button", { class: "btn btn-quiet", type: "button", text: "Reset to original schedule", onclick: function () { sched.splice(0, sched.length); clone(DEFAULT_SCHEDULE).forEach(function (b) { sched.push(b); }); drawSched(); dirty.textContent = "Reset. Save to keep it."; } })
       ])

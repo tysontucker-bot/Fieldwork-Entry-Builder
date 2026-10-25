@@ -122,6 +122,53 @@ p{margin:0 0 12px}
 .file-btn{position:relative;display:inline-block}
 .file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .storage{margin-top:8px}
+.chk-sec{padding:10px 0;border-top:1px solid var(--line)}
+.chk-sec:first-child{border-top:0}
+.chk-sec h3{display:flex;justify-content:space-between;align-items:center;font-size:1rem;margin:0 0 4px}
+.chk-count{font-size:.8125rem;font-weight:800;border-radius:999px;padding:1px 10px;background:var(--u-bg);color:var(--u)}
+.chk-count.bad{background:color-mix(in srgb,var(--danger) 15%,var(--surface));color:var(--danger)}
+.chk-list{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.9375rem}
+.chk-date{padding:0 6px 0 0;font-variant-numeric:tabular-nums}
+.rip-paste{width:100%;border:1px solid var(--line);background:var(--sunk);border-radius:8px;padding:10px 12px;font-size:.875rem}
+#connecting-note{display:none}
+body.connecting main, body.connecting #now-view{pointer-events:none;opacity:.45}
+body.connecting #connecting-note{display:block;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--ink);color:var(--bg);padding:14px 20px;border-radius:14px;font-weight:700;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.carry-box{border:1.5px solid var(--brand);background:color-mix(in srgb,var(--brand) 8%,var(--surface));border-radius:12px;padding:12px 14px;display:grid;gap:6px}
+.carry-q{font-weight:700;margin:0}
+.carry-box .muted{margin:0}
+.carry-btns{display:flex;gap:8px;flex-wrap:wrap}
+.repeat-box{border:1.5px solid var(--r);background:var(--r-bg);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:grid;gap:2px}
+.repeat-title{font-weight:700;color:var(--r);margin:0}
+.repeat-row{text-align:left;color:var(--ink);padding:4px 0}
+/* Now view: opens only from the #now link; the regular app is unchanged */
+body.now-mode header.top, body.now-mode main, body.now-mode #session-bar{display:none!important}
+#now-view{max-width:560px;margin:0 auto;padding:12px 14px calc(110px + env(safe-area-inset-bottom,0px))}
+.now-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.now-top h1{font-size:1.0625rem;margin:0}
+.now-top .muted{font-size:.8125rem}
+.now-nav{display:grid;grid-template-columns:52px 1fr 52px;gap:8px;align-items:center;margin-bottom:10px}
+.now-nav .icon-btn{width:52px;height:52px;font-size:1.6rem}
+.now-when{text-align:center;line-height:1.25}
+.now-when .lab{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.now-when .t{font-variant-numeric:tabular-nums;font-size:.9375rem;color:var(--muted)}
+.now-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);display:grid;gap:12px}
+.now-name{font-size:1.5rem;font-weight:700;line-height:1.2;margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.now-card .check-pill{font-size:1rem;padding:10px 14px}
+.now-card .check-pill input{width:20px;height:20px}
+.now-logged{display:flex;align-items:center;gap:8px;color:var(--u);font-weight:700}
+.now-logged svg{width:22px;height:22px}
+.now-other{border:1px solid var(--line);background:var(--sunk);border-radius:10px;padding:10px 12px;width:100%}
+.now-bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;justify-content:center;z-index:20}
+.now-bar .btn{min-height:52px;font-size:1.0625rem}
+.now-bar .btn-primary{flex:1;max-width:340px}
+.now-empty{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:10px}
+.now-unlogged{display:grid;gap:6px}
+.now-unlogged button{text-align:left;border:1px solid var(--line);background:var(--sunk);border-radius:10px;padding:10px 12px;cursor:pointer}
+.now-forget{font-weight:600;color:var(--muted);font-size:.8125rem}
+.now-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-top:14px}
+.change-box{border:1.5px solid var(--brand);background:color-mix(in srgb,var(--brand) 8%,var(--surface));border-radius:12px;padding:12px 14px;margin-bottom:12px;display:grid;gap:6px}
+.change-title{font-weight:700;color:var(--brand);margin:0}
+.change-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .targets{display:grid;gap:8px;margin-top:4px}
 .target-row{display:grid;gap:4px}
 .target-lab{font-size:.8125rem;font-weight:700;color:var(--muted)}
@@ -355,7 +402,9 @@ body.has-session #toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
   <section id="view-settings" hidden></section>
 </main>
 <dialog id="dlg" aria-label="Entry"></dialog>
+<section id="now-view" hidden></section>
 <div id="session-bar" hidden></div>
+<div id="connecting-note" role="status">Loading your latest schedule and entries&#8230;</div>
 <div id="toast" role="status" aria-live="polite"></div>
 <script>
 const TCO_DATA = {
@@ -484,13 +533,15 @@ const DEFAULT_SCHEDULE = [
   blk("folders","Parent Communication","13:45","14:00","Communicated individualized student progress and behavior information with caregivers, including progress toward skill-acquisition targets and behavior or intervention-related information.",["writing in take-home folders","shared skill-acquisition progress","shared behavior information","shared intervention updates"],{type:"Unrestricted",tco:["H.8"],ethics:["2.08","2.09"],usual:U([])}),
   blk("prep_to_go_home","Prep to Go Home","14:00","14:15","Implemented individualized independence and functional-routine skill-acquisition procedures using prompting, reinforcement, and prompt fading to increase independent completion of the end-of-day routine.",["retrieving backpack","checking required belongings","identifying bus number",PR],{usual:U(["retrieving backpack","checking required belongings","identifying bus number",PR])})
 ];
-const SCHEDULE_VERSION = 31;
+const SCHEDULE_VERSION = 34;
 const COACH_OPT = "coached my para (unrestricted)";
 const OLD_COACH_OPT = "coached my para on implementation";
+const BEHAV_OPT = "responded to student behavior";
 DEFAULT_SCHEDULE.forEach(function (b) { if (b.type === "Restricted" && b.options.indexOf(COACH_OPT) < 0) b.options.push(COACH_OPT); });
 const OLD_WORKSHEET_DESC = "Created individualized instructional worksheets aligned with IEP goals to provide structured practice opportunities and support acquisition and generalization of academic skills.";
 const MY_CAT = "My templates";
 const TEMPLATE_CATEGORIES = [
+  { name: "Direct work with students", hint: "Restricted time outside your schedule, like behavior support" },
   { name: "Materials & visuals", hint: "Token boards, schedules, flashcards, folder jobs" },
   { name: "Classroom environment", hint: "Setup, safety, organizing work areas" },
   { name: "Data & measurement", hint: "Data sheets, definitions, graphs, reviewing data" },
@@ -641,6 +692,13 @@ const NEW_TEMPLATES_V28 = [
 ];
 TEMPLATE_CAT_BY_ID.t_obspres = "Working with others";
 NEW_TEMPLATES_V28.forEach(function (t) { DEFAULT_TEMPLATES.push(t); });
+const NEW_TEMPLATES_V32 = [
+  Object.assign(tpl("t_behavior","Responded to student behavior","Implemented individualized behavior-intervention procedures in response to target behavior, including antecedent strategies, prompting of a replacement behavior, and programmed reinforcement.",["G.5","H.3"],["2.14","2.15"],["implemented antecedent strategies","prompted a replacement behavior","used de-escalation strategies","delivered reinforcement for appropriate behavior","supported a safe transition","collected ABC data afterward"]),{type:"Restricted",optionCodes:{"collected ABC data afterward":{tco:["F.5"],ethics:["2.17"]},"delivered reinforcement for appropriate behavior":{tco:["G.2"]}}}),
+  Object.assign(tpl("t_unsched","Unscheduled skill teaching","Implemented individualized skill-acquisition procedures outside the scheduled routine using prompting and programmed reinforcement.",["G.7","G.8"],["2.14","3.01"],["incidental teaching","communication and requesting","following directions","transition skills","self-care skills","providing positive reinforcement"]),{type:"Restricted"}),
+  Object.assign(tpl("t_othersetting","Supported a student in another setting","Implemented individualized skill-acquisition and behavior-support procedures with a student outside the classroom to promote generalization of skills across settings.",["G.7","G.15"],["2.14","3.01"],["general education class","specials (PE, music, art)","hallway or transition","cafeteria","bus loading or unloading","providing positive reinforcement"]),{type:"Restricted"})
+];
+TEMPLATE_CAT_BY_ID.t_behavior = TEMPLATE_CAT_BY_ID.t_unsched = TEMPLATE_CAT_BY_ID.t_othersetting = "Direct work with students";
+NEW_TEMPLATES_V32.forEach(function (t) { DEFAULT_TEMPLATES.push(t); });
 DEFAULT_TEMPLATES.forEach(function (t) { t.category = TEMPLATE_CAT_BY_ID[t.id] || MY_CAT; });
 // Demo build: generic sample classroom schedule and scrubbed templates.
 (function () {
@@ -693,11 +751,9 @@ DEFAULT_TEMPLATES.forEach(function (t) { t.category = TEMPLATE_CAT_BY_ID[t.id] |
     blk("meetings","ARD / IEP / MTSS Meetings","14:30","15:30","Participated in team meetings to share data-based information and collaborate on goals, behavior supports, and intervention decisions.",["ARD/IEP meeting","MTSS or RTI meeting","presented student data","discussed behavior supports","discussed goals"],{type:"Unrestricted",optional:true,tco:["H.8"],ethics:["2.09","2.10"],usual:U([])})
   ];
   window.__ROLE_SCHEDULES__ = { teacher: DEFAULT_SCHEDULE.slice(), admin: ADMIN, blank: [] };
-  TEMPLATE_CATEGORIES.push({ name: "Direct work with students", hint: "Behavior support and instruction you deliver yourself" });
   const extra = [
     Object.assign(tpl("t_observe","Conducted a classroom observation","Observed classroom instruction and behavior-plan implementation to collect data and evaluate the effectiveness and integrity of behavior-analytic procedures.",["C.3","H.6","H.7"],["2.17","2.18"],["collected behavior data","scored procedural integrity","observed a student of concern","gave feedback afterward"]),{category:"Working with others"}),
     Object.assign(tpl("t_coach","Coached a teacher","Coached a teacher on implementing individualized behavior-analytic procedures using instructions, modeling, and performance feedback.",["H.6","H.8"],["2.10"],["behavior plan implementation","reinforcement systems","de-escalation strategies","data collection","prompting procedures"]),{category:"Working with others"}),
-    Object.assign(tpl("t_direct","Provided behavior support to a student","Implemented individualized behavior-intervention procedures with a student, including antecedent strategies, prompting of replacement behavior, and programmed reinforcement.",["G.5","H.3"],["2.14","2.15"],["implemented antecedent strategies","prompted a replacement behavior","delivered reinforcement","used de-escalation strategies"]),{type:"Restricted",category:"Direct work with students"})
   ];
   extra.forEach(function (t) { DEFAULT_TEMPLATES.push(t); });
 })();
@@ -954,6 +1010,36 @@ async function buildRipleyXlsm(JSZip, entries, templateB64, opts) {
     app = app.replace("<vt:i4>4</vt:i4>", "<vt:i4>5</vt:i4>").replace('<vt:vector size="4" baseType="lpstr">', '<vt:vector size="5" baseType="lpstr">').replace("<vt:lpstr>References</vt:lpstr>", "<vt:lpstr>References</vt:lpstr><vt:lpstr>Daily Log</vt:lpstr>");
     zip.file("docProps/app.xml", app);
   }
+  // Extra tabs: Restricted and Unrestricted, same layout as Ripley Fieldwork (which stays unchanged for the flow and macro)
+  if (opts.splitTabs !== false) {
+    const tab = function (type) {
+      const list = sorted.filter(function (e) { return e.type === type; });
+      let x = '<row r="1" spans="1:7"' + R + ">" + str("A1", 1, "Date") + str("B1", 13, "Start") + str("C1", 13, "End") + str("D1", 1, "Hours") + str("E1", 1, "Activity") + str("F1", 1, "Type") + str("G1", 1, "Summary") + "</row>";
+      list.forEach(function (e, i) {
+        const r = i + 2;
+        x += '<row r="' + r + '" spans="1:7"' + R + ">" + num("A" + r, 2, serial(e.date)) + str("B" + r, 15, e.start) + str("C" + r, 15, e.end) + num("D" + r, 4, hrs(e)) + str("E" + r, 3, e.activity) + str("F" + r, 3, e.type) + str("G" + r, 3, e.summary) + "</row>";
+      });
+      const n = list.length + 2, tot = r2(list.reduce(function (s, e) { return s + hrs(e); }, 0));
+      x += '<row r="' + n + '" spans="1:7"' + R + ">" + str("A" + n, 1, "Total") + empty("B" + n, 1) + empty("C" + n, 1) + fml("D" + n, 1, "SUM(D2:D" + (n - 1) + ")", tot) + empty("E" + n, 1) + empty("F" + n, 1) + empty("G" + n, 1) + "</row>";
+      return head + '<dimension ref="A1:G' + n + '"/><sheetViews><sheetView zoomScale="85" zoomScaleNormal="85" workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultColWidth="16.5703125" defaultRowHeight="46.5" customHeight="1" x14ac:dyDescent="0.25"/><cols><col min="2" max="3" width="16.5703125" style="16"/><col min="7" max="7" width="192.42578125" customWidth="1"/></cols><sheetData>' + x + "</sheetData>" + margins;
+    };
+    zip.file("xl/worksheets/sheet6.xml", tab("Restricted"));
+    zip.file("xl/worksheets/sheet7.xml", tab("Unrestricted"));
+    let wbx2 = await zip.file("xl/workbook.xml").async("string");
+    wbx2 = wbx2.replace("</sheets>", '<sheet name="Restricted" sheetId="6" r:id="rId11"/><sheet name="Unrestricted" sheetId="7" r:id="rId12"/></sheets>');
+    zip.file("xl/workbook.xml", wbx2);
+    let rel3 = await zip.file("xl/_rels/workbook.xml.rels").async("string");
+    rel3 = rel3.replace("</Relationships>", '<Relationship Id="rId11" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet6.xml"/><Relationship Id="rId12" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet7.xml"/></Relationships>');
+    zip.file("xl/_rels/workbook.xml.rels", rel3);
+    let ct3 = await zip.file("[Content_Types].xml").async("string");
+    ct3 = ct3.replace('<Override PartName="/xl/worksheets/sheet4.xml"', '<Override PartName="/xl/worksheets/sheet6.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet7.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet4.xml"');
+    zip.file("[Content_Types].xml", ct3);
+    let app3 = await zip.file("docProps/app.xml").async("string");
+    app3 = app3.replace(/<vt:i4>(\d+)<\/vt:i4>/, function (_, n) { return "<vt:i4>" + (+n + 2) + "</vt:i4>"; })
+      .replace(/<vt:vector size="(\d+)" baseType="lpstr">/, function (_, n) { return '<vt:vector size="' + (+n + 2) + '" baseType="lpstr">'; })
+      .replace(/(<vt:lpstr>(?:Daily Log|References)<\/vt:lpstr>)(?![\s\S]*<vt:lpstr>(?:Daily Log|References)<\/vt:lpstr>)/, "$1<vt:lpstr>Restricted</vt:lpstr><vt:lpstr>Unrestricted</vt:lpstr>");
+    zip.file("docProps/app.xml", app3);
+  }
   if (opts.macro === false) {
     zip.remove("xl/vbaProject.bin");
     let ct2 = await zip.file("[Content_Types].xml").async("string");
@@ -1114,6 +1200,13 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         else s.templates.push(clone(dt));
       });
     }
+    if ((s.v || 0) < 34) s.schedule.forEach(function (b) {
+      b.options = (b.options || []).filter(function (o) { return o !== BEHAV_OPT; });
+      if (b.usual && b.usual.options) b.usual.options = b.usual.options.filter(function (o) { return o !== BEHAV_OPT; });
+    });
+    if ((s.v || 0) < 32) NEW_TEMPLATES_V32.forEach(function (nt) {
+      if (!s.templates.some(function (t) { return t.id === nt.id || t.name.trim().toLowerCase() === nt.name.toLowerCase(); })) { const c = clone(nt); c.category = TEMPLATE_CAT_BY_ID[c.id]; s.templates.push(c); }
+    });
     if ((s.v || 0) < 31) s.schedule.forEach(function (b) {
       const i = (b.options || []).indexOf(OLD_COACH_OPT); if (i >= 0) b.options[i] = COACH_OPT;
       if (b.usual && b.usual.options) b.usual.options = b.usual.options.filter(function (o) { return o !== OLD_COACH_OPT; });
@@ -1199,7 +1292,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     s.templates.forEach(function (t) { t.options = t.options || []; if (!t.category) t.category = TEMPLATE_CAT_BY_ID[t.id] || MY_CAT; });
     s.v = SCHEDULE_VERSION;
     s.schedule.forEach(function (b) { b.usual = b.usual || { areas: [], options: [], others: [], word: "" }; b.optional = !!b.optional; });
-    return { v: s.v || SCHEDULE_VERSION, custom: !!s.custom, rolePicked: s.rolePicked || "", schedule: s.schedule, templates: s.templates || [] };
+    return { v: s.v || SCHEDULE_VERSION, custom: !!s.custom, rolePicked: s.rolePicked || "", schedule: s.schedule, templates: s.templates || [], changes: s.changes || {} };
   }
   const S = {
     days: {},             // date -> entries[]
@@ -1246,6 +1339,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     return out.sort(function (a, b) { return (a.date + a.start).localeCompare(b.date + b.start); });
   }
   function upsertEntry(e, keepStamp) {
+    if (e.picks && e.picks._carry) delete e.picks._carry;
     if (!keepStamp) e.updatedAt = Date.now();
     Object.keys(S.days).forEach(function (d) {
       const arr = S.days[d]; const i = arr.findIndex(function (x) { return x.id === e.id; });
@@ -1284,13 +1378,91 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       h("p", { class: "muted small", text: "Fieldwork time can\u2019t be counted twice. Tap an entry to change its times or delete it." })
     ]);
   }
-  function blockDef(id) { return S.settings.schedule.find(function (b) { return b.id === id; }); }
+  function blockDef(id) { const base = String(id || "").split("~")[0]; return S.settings.schedule.find(function (b) { return b.id === base; }); }
+  // The day's schedule after any schedule changes: blocks are trimmed or split around each change window.
+  function hmOf(n) { return pad(Math.floor(n / 60)) + ":" + pad(n % 60); }
+  function dayChanges(date) { return (((S.settings.changes || {})[date]) || []).filter(function (c) { return c.start && c.end && mins(c.end) > mins(c.start); }); }
+  function daySchedule(date) {
+    const ch = dayChanges(date); if (!ch.length) return S.settings.schedule;
+    let list = S.settings.schedule.map(function (b) { return [b, mins(b.start), mins(b.end), b.id]; });
+    ch.forEach(function (c) {
+      const cs = mins(c.start), ce = mins(c.end), out = [];
+      list.forEach(function (x) {
+        const b = x[0], bs = x[1], be = x[2], id = x[3];
+        if (ce <= bs || cs >= be) { out.push(x); return; }
+        const split = bs < cs && be > ce;
+        if (bs < cs) out.push([b, bs, cs, split ? id + "~1" : id]);
+        if (be > ce) out.push([b, ce, be, split ? id + "~2" : id]);
+      });
+      list = out;
+    });
+    return list.map(function (x) {
+      const b = x[0]; if (x[1] === mins(b.start) && x[2] === mins(b.end) && x[3] === b.id) return b;
+      return Object.assign(clone(b), { id: x[3], start: hmOf(x[1]), end: hmOf(x[2]), trimmed: true });
+    });
+  }
+  function addChange(date, c) { S.settings.changes = S.settings.changes || {}; (S.settings.changes[date] = S.settings.changes[date] || []).push(c); S.settings.custom = true; persistSettings(); }
+  function removeChange(date, i) { const a = (S.settings.changes || {})[date]; if (!a) return; a.splice(i, 1); if (!a.length) delete S.settings.changes[date]; persistSettings(); }
+  const CHANGE_KEYS = [
+    [/behav|meltdown|tantrum|aggress|elop|hit|bit|kick|scream|unsafe|escalat|crisis|upset/, "t_behavior"],
+    [/drill|assembly|program|field ?trip|library|gen ?ed|general ed|cafeteria|hallway|bus|inclusion|pep rally/, "t_othersetting"],
+    [/\bard\b|iep|admission/, "t_ard"],
+    [/parent|caregiver|guardian|phone call|\bcall\b|email/, "t_parent"],
+    [/train|coach|\bpara|aide|staff|sub\b|substitute/, "t_train"],
+    [/observ|integrity/, "t_integrity"],
+    [/\babc\b/, "t_abc"],
+    [/data|graph/, "t_review"],
+    [/supervis/, "t_supmeet"],
+    [/teach|lesson|practice|skill|extra time|incidental/, "t_unsched"]
+  ];
+  function suggestActivities(text) {
+    const q = String(text || "").toLowerCase(); const words = q.split(/[^a-z0-9]+/).filter(function (w) { return w.length > 2; });
+    const scored = S.settings.templates.map(function (t) {
+      const hay = (t.name + " " + (t.category || "") + " " + (t.options || []).join(" ") + " " + t.description).toLowerCase();
+      let s = 0; words.forEach(function (w) { if (hay.indexOf(w) >= 0) s += 1; if (t.name.toLowerCase().indexOf(w) >= 0) s += 2; });
+      CHANGE_KEYS.forEach(function (k) { if (k[1] === t.id && k[0].test(q)) s += 6; });
+      return [t, s];
+    }).filter(function (x) { return x[1] > 0; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 6).map(function (x) { return x[0]; });
+    if (scored.length) return scored;
+    return ["t_unsched", "t_behavior", "t_othersetting"].map(templateDef).filter(Boolean);
+  }
+  function openChangeDialog() {
+    const body = h("div", { class: "dlg-body" });
+    body.appendChild(dlgHead("Schedule change", fmtDateLong(S.date) + " only. Your regular schedule pauses for this time, then picks back up."));
+    const st = h("input", { type: "time" }), en = h("input", { type: "time" });
+    const what = h("input", { type: "text", placeholder: "e.g., student needed behavior support; fire drill; ARD meeting" });
+    const err = h("p", { class: "form-err", role: "alert" });
+    const sugg = h("div", { class: "tpl-grid" });
+    body.appendChild(h("div", { class: "grid2" }, [field("Begins", st), field("Ends", en), field("What happened (briefly)", what, "wide")]));
+    body.appendChild(h("p", { class: "picker-h", text: "Suggested activities" }));
+    body.appendChild(sugg); body.appendChild(err);
+    const draw = function () {
+      sugg.replaceChildren();
+      suggestActivities(what.value).forEach(function (t) {
+        sugg.appendChild(h("button", { class: "tpl", type: "button", onclick: function () { pickIt(t); } }, [
+          h("span", { class: "tpl-name", text: t.name }),
+          h("span", { class: "tpl-meta" }, [h("span", { class: "chip " + (t.type === "Restricted" ? "r" : "u"), text: t.type }), h("span", { class: "muted small", text: t.category || "" })])
+        ]));
+      });
+      sugg.appendChild(h("button", { class: "tpl tpl-blank", type: "button", onclick: function () { pickIt(null); } }, [h("span", { class: "tpl-name", text: "Blank entry" })]));
+    };
+    let timer = null; what.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(draw, 200); });
+    function pickIt(t) {
+      if (!st.value || !en.value) { err.textContent = "Add when the change began and ended."; return; }
+      if (mins(en.value) <= mins(st.value)) { err.textContent = "The end time needs to be after the start time."; return; }
+      addChange(S.date, { start: st.value, end: en.value, label: what.value.trim() });
+      const n = newFromTemplate(t, { date: S.date, start: st.value }); n.end = en.value;
+      if (!t) n.activity = what.value.trim();
+      $("#dlg").close(); render(); openEditor(n);
+    }
+    draw(); showDialog(body); st.focus();
+  }
   function templateDef(id) { return S.settings.templates.find(function (t) { return t.id === id; }); }
 
   const STANDALONE = !!window.__STANDALONE__;
   async function connectCloud() {
     if (STANDALONE) { S.mode = "local"; S.localConfirmed = true; renderStatus(); return; }
-    const giveUp = function () { S.localConfirmed = true; renderStatus(); };
+    const giveUp = function () { S.localConfirmed = true; document.body.classList.remove("connecting"); renderStatus(); };
     const timer = setTimeout(giveUp, 8000);
     if (!window.claude || typeof window.claude.use !== "function") { clearTimeout(timer); giveUp(); return; }
     let db = null, user = null;
@@ -1302,10 +1474,10 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     let first = true;
     db.collection("data/users/" + id).onSnapshot(function (snap) {
       if (first && snap.metadata.fromCache) return;
-      const days = {}; let settings = null;
+      const days = {}; let settings = null; const wasFirst = first;
       snap.docs.forEach(function (d) { const v = d.data(); if (!v) return; if (d.id === "settings") settings = v; else if (d.id.slice(0, 2) === "d-" && Array.isArray(v.entries)) days[v.date] = v.entries.slice(); });
       if (first) {
-        first = false; clearTimeout(timer); S.localConfirmed = false;
+        first = false; clearTimeout(timer); S.localConfirmed = false; document.body.classList.remove("connecting");
         const hadLocal = Object.keys(S.days).length > 0;
         S.mode = "cloud";
         if (!Object.keys(days).length && hadLocal) {
@@ -1316,8 +1488,9 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       S.days = days;
       const adopted = adoptSettings(settings); if (adopted) S.settings = adopted;
       writeLocal(); renderStatus();
-      if (S.tab === "settings" || $("#dlg").open) renderTotals(); else render();
-    }, function () { S.mode = "local"; S.localConfirmed = true; renderStatus(); });
+      if (wasFirst) { NOW.key = null; NOW.st = null; render(); }   // first load: rebuild everything from your account's data
+      else if (S.tab === "settings" || $("#dlg").open || NOW.on) renderTotals(); else render();
+    }, function () { S.mode = "local"; S.localConfirmed = true; document.body.classList.remove("connecting"); renderStatus(); });
   }
 
   // ---------- toast ----------
@@ -1363,6 +1536,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       chip.textContent = S.mode === "cloud" ? "Synced" : waiting ? "Connecting\u2026" : "This browser only";
       chip.title = S.mode === "cloud" ? "Entries are saved to your Claude account." : "Entries here are not saved to your Claude account.";
     }
+    const nc = $("#now-sync");
+    if (nc) { nc.className = "sync-chip " + (S.mode === "cloud" ? "ok" : (S.localConfirmed ? "local" : "wait")); nc.textContent = S.mode === "cloud" ? "Synced" : (S.localConfirmed ? "This phone only" : "Connecting\u2026"); }
     const warn = $("#local-warn");
     if (warn) warn.hidden = !(S.mode !== "cloud" && S.localConfirmed);
   }
@@ -1405,7 +1580,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       h("button", { class: "icon-btn", type: "button", "aria-label": "Next day", text: "\u203A", onclick: function () { S.date = shiftDate(S.date, 1); render(); } })
     ]));
     const logged = {}; entries.forEach(function (e) { if (e.blockId) logged[e.blockId] = e; });
-    const remaining = S.settings.schedule.filter(function (b) { return !logged[b.id] && !b.optional; });
+    const remaining = daySchedule(S.date).filter(function (b) { return !logged[b.id] && !b.optional; });
     const dow = (function () { const p = S.date.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]).getDay(); })();
     const weekend = dow === 0 || dow === 6;
     const hideSchedule = weekend && !Object.keys(logged).length && !showWeekendSchedule;
@@ -1430,13 +1605,19 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         h("button", { class: "btn", type: "button", text: "Fill in the day", onclick: function () { startQuick(); } }),
         remaining.length ? h("button", { class: "btn btn-quiet", type: "button", text: "Log " + remaining.length + " remaining with usual specifics", onclick: function () { logAllRemaining(remaining); } }) : null,
         h("button", { class: "btn btn-quiet", type: "button", text: "Add other work", onclick: function () { openTemplatePicker(); } }),
+        h("button", { class: "btn btn-quiet", type: "button", text: "Schedule change", onclick: openChangeDialog }),
         entries.length ? deleteDayButton(S.date) : null
       ])
     ]));
     const cb = clashBox(S.date); if (cb) v.appendChild(cb);
     const cids = clashIds(S.date);
+    const chs = dayChanges(S.date);
+    if (chs.length) v.appendChild(h("div", { class: "change-box" }, [h("p", { class: "change-title", text: chs.length === 1 ? "Schedule change today" : "Schedule changes today" })].concat(((S.settings.changes || {})[S.date] || []).map(function (c, i) {
+      return h("div", { class: "change-row" }, [h("span", {}, [h("b", { text: fmtTime(c.start) + " \u2013 " + fmtTime(c.end) }), " " + (c.label || "")]),
+        h("button", { class: "link-btn", type: "button", text: "Remove", onclick: function () { removeChange(S.date, i); render(); toast("Schedule change removed. Its entry, if any, is still under Other work."); } })]);
+    }))));
     const list = h("ol", { class: "blocks", hidden: hideSchedule });
-    S.settings.schedule.forEach(function (b) {
+    daySchedule(S.date).forEach(function (b) {
       const e = logged[b.id];
       list.appendChild(h("li", { class: "block" + (e ? " done" : "") }, [
         h("button", { class: "block-main", type: "button", onclick: function () { openEditor(e ? clone(e) : newFromBlock(b)); } }, [
@@ -1457,9 +1638,60 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     }
   }
   function svgCheck() { const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 20 20"); s.setAttribute("aria-hidden", "true"); s.innerHTML = '<path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'; return s; }
-  function newFromBlock(b) {
-    return { id: uid(), date: S.date, start: b.start, end: b.end, activity: b.name, type: b.type, blockId: b.id, templateId: null, base: b.description,
-      picks: usualPicks(b), tco: b.tco.slice(), ethics: b.ethics.slice(), summary: "", summaryEdited: false, exported: false };
+  // ---- carry forward last targets and prompt levels, with a check after 5 unchanged days ----
+  const CARRY_LIMIT = 5;
+  function baseIdOf(id) { return String(id || "").split("~")[0]; }
+  function targetSig(picks) {
+    const t = (picks && picks.targets) || {}, o = {};
+    Object.keys(t).sort().forEach(function (k) { const v = String(t[k] || "").trim(); if (v && k !== "__prompts" && (picks.options || []).indexOf(k) >= 0) o[k] = v; });
+    return Object.keys(o).length ? JSON.stringify(o) : "";
+  }
+  function carryInfo(b, date) {
+    const base = baseIdOf(b.id), dates = Object.keys(S.days).filter(function (d) { return d < date; }).sort().reverse();
+    let carry = null, streak = 0;
+    for (let i = 0; i < dates.length; i++) {
+      const e = (S.days[dates[i]] || []).find(function (x) { return x.blockId && baseIdOf(x.blockId) === base; });
+      if (!e) continue;
+      const sig = targetSig(e.picks);
+      if (!carry) { carry = { sig: sig, picks: e.picks }; streak = 1; if (!sig) break; continue; }
+      if (sig === carry.sig) streak++; else break;
+    }
+    if (!carry) return null;
+    const targets = {}, options = [];
+    Object.keys(carry.picks.targets || {}).forEach(function (k) { const v = String(carry.picks.targets[k] || "").trim(); if (!v) return; if (k === "__prompts" || (b.options || []).indexOf(k) >= 0) { targets[k] = v; if (k !== "__prompts") options.push(k); } });
+    if (!Object.keys(targets).length) return null;
+    // only real targets (letters, numbers, words) trigger the check; prompt levels alone just carry forward
+    return { targets: targets, options: options, order: (b.options || []).slice(), streak: streak, ask: !!carry.sig && streak >= CARRY_LIMIT };
+  }
+  function applyCarry(picks, info) {
+    picks.targets = Object.assign({}, picks.targets || {}, info.targets);
+    info.options.forEach(function (o) { if (picks.options.indexOf(o) < 0) picks.options.push(o); });
+    if (info.order) picks.options.sort(function (a, b) { return info.order.indexOf(a) - info.order.indexOf(b); });
+  }
+  function startPicks(b, date) {
+    const p = usualPicks(b), info = carryInfo(b, date);
+    if (info && !info.ask) applyCarry(p, info);
+    if (info && info.ask) p._carry = info;
+    return p;
+  }
+  function carryText(info) {
+    return Object.keys(info.targets).map(function (k) { return (k === "__prompts" ? "prompt levels" : k) + ": " + info.targets[k]; }).join("; ");
+  }
+  function carryBanner(picks, onDone) {
+    const info = picks._carry; if (!info) return null;
+    return h("div", { class: "carry-box" }, [
+      h("p", { class: "carry-q", text: "These haven\u2019t changed in " + info.streak + " days. Still accurate?" }),
+      h("p", { class: "muted small", text: carryText(info) }),
+      h("div", { class: "carry-btns" }, [
+        h("button", { class: "btn btn-sm", type: "button", text: "Yes, still accurate", onclick: function () { applyCarry(picks, info); delete picks._carry; onDone(); } }),
+        h("button", { class: "btn btn-quiet btn-sm", type: "button", text: "I\u2019ll update them", onclick: function () { delete picks._carry; onDone(); } })
+      ])
+    ]);
+  }
+  function newFromBlock(b, date) {
+    const dt = date || S.date;
+    return { id: uid(), date: dt, start: b.start, end: b.end, activity: b.name, type: b.type, blockId: b.id, templateId: null, base: b.description,
+      picks: startPicks(b, dt), tco: b.tco.slice(), ethics: b.ethics.slice(), summary: "", summaryEdited: false, exported: false };
   }
   function usualPicks(b) {
     const u = b.usual || {};
@@ -1522,9 +1754,9 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   function startQuick() {
     const entries = S.days[S.date] || []; const logged = {}; entries.forEach(function (e) { if (e.blockId) logged[e.blockId] = e; });
     Q = { date: S.date, rows: {} };
-    S.settings.schedule.forEach(function (b) {
+    daySchedule(S.date).forEach(function (b) {
       const e = logged[b.id];
-      Q.rows[b.id] = { include: e ? true : !b.optional, wasLogged: !!e, picks: e ? clone(e.picks || usualPicks(b)) : usualPicks(b), other: "" };
+      Q.rows[b.id] = { include: e ? true : !b.optional, wasLogged: !!e, picks: e ? clone(e.picks || usualPicks(b)) : startPicks(b, S.date), other: "" };
       const p = Q.rows[b.id].picks; ["areas", "options", "others"].forEach(function (k) { p[k] = p[k] || []; });
       Q.rows[b.id].other = p.others.join("; "); 
     });
@@ -1532,7 +1764,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   }
   function copyFromDay(src) {
     const logged = {}; (S.days[src] || []).forEach(function (e) { if (e.blockId) logged[e.blockId] = e; });
-    S.settings.schedule.forEach(function (b) {
+    daySchedule(Q.date).forEach(function (b) {
       const r = Q.rows[b.id], e = logged[b.id];
       if (e) { r.include = true; r.picks = clone(e.picks || usualPicks(b)); ["areas", "options", "others"].forEach(function (k) { r.picks[k] = r.picks[k] || []; }); r.other = r.picks.others.join("; "); }
       else r.include = false;
@@ -1548,12 +1780,12 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     ]));
     const count = h("span"); 
     function updateCount() {
-      const n = S.settings.schedule.filter(function (b) { return Q.rows[b.id].include; }).length;
-      const rm = S.settings.schedule.filter(function (b) { return !Q.rows[b.id].include && Q.rows[b.id].wasLogged; }).length;
+      const n = daySchedule(Q.date).filter(function (b) { return Q.rows[b.id] && Q.rows[b.id].include; }).length;
+      const rm = daySchedule(Q.date).filter(function (b) { return Q.rows[b.id] && !Q.rows[b.id].include && Q.rows[b.id].wasLogged; }).length;
       count.textContent = n + (n === 1 ? " block" : " blocks") + (rm ? ", " + rm + " to remove" : "");
     }
     const list = h("div", { class: "qlist" });
-    S.settings.schedule.forEach(function (b) {
+    daySchedule(Q.date).forEach(function (b) {
       const r = Q.rows[b.id];
       const body = h("div", { class: "q-body", hidden: !r.include });
       const card = h("section", { class: "q-card" + (r.include ? "" : " off") });
@@ -1569,6 +1801,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       if (b.options && b.options.length) {
         const wordIn = h("input", { type: "text", class: "q-word", value: r.picks.word || "", placeholder: "Word of the Week", "aria-label": "Word of the Week for " + b.name, hidden: r.picks.options.indexOf(WOTW) < 0, oninput: function () { r.picks.word = this.value; } });
         if (b.areas && b.areas.length) body.appendChild(h("span", { class: "q-lab", text: "What you did" }));
+        const qcb = carryBanner(r.picks, function () { render(); }); if (qcb) body.appendChild(qcb);
         const qtr = targetRows(b.options, r.picks, null);
         body.appendChild(pills(b.options, r.picks.options, "", function () { wordIn.hidden = r.picks.options.indexOf(WOTW) < 0; qtr.sync(); }));
         if (b.options.indexOf(WOTW) >= 0) body.appendChild(wordIn);
@@ -1663,7 +1896,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   function saveQuick() {
     const entries = S.days[Q.date] || []; const logged = {}; entries.forEach(function (e) { if (e.blockId) logged[e.blockId] = e; });
     const before = clone(entries); let saved = 0, removed = 0;
-    S.settings.schedule.forEach(function (b) {
+    daySchedule(Q.date).forEach(function (b) {
       const r = Q.rows[b.id], e = logged[b.id];
       r.picks.others = r.other.split(";").map(function (s) { return s.trim(); }).filter(Boolean);
       if (!r.include) { if (e) { removeEntry(e); removed++; } return; }
@@ -1798,6 +2031,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     if (def && def.areas && def.areas.length) {
       body.appendChild(checkGroup("Which areas applied?", def.areas, d.picks.areas, refresh));
     }
+    // carry-forward check
+    const ecb = d.picks && d.picks._carry ? carryBanner(d.picks, function () { openEditor(d); }) : null; if (ecb) body.appendChild(ecb);
     // options
     if (odef && odef.options && odef.options.length) {
       const wordWrap = h("div", { class: "word", hidden: d.picks.options.indexOf(WOTW) < 0 }, [field("Word of the Week", h("input", { type: "text", value: d.picks.word || "", placeholder: "Enter the word", oninput: function () { d.picks.word = this.value; refresh(); } }))]);
@@ -2000,12 +2235,13 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   function renderLog() {
     const v = $("#view-log"); v.replaceChildren();
     const modeSeg = h("div", { class: "seg", role: "radiogroup", "aria-label": "View" });
-    [["cal", "Calendar"], ["day", "By day"], ["list", "Every entry"]].forEach(function (f) {
+    [["cal", "Calendar"], ["day", "By day"], ["list", "Every entry"], ["check", "Check"]].forEach(function (f) {
       modeSeg.appendChild(h("input", { type: "radio", name: "lm", id: "lm-" + f[0], checked: logMode === f[0], onchange: function () { logMode = f[0]; renderLog(); } }));
       modeSeg.appendChild(h("label", { for: "lm-" + f[0], text: f[1] }));
     });
     v.appendChild(h("div", { class: "log-mode" }, [modeSeg]));
     if (logMode === "cal") { renderCalendar(v); return; }
+    if (logMode === "check") { renderCheck(v); return; }
     if (logMode === "day") { renderDayLog(v); return; }
     const seg = h("div", { class: "seg seg-sm", role: "radiogroup", "aria-label": "Filter" });
     [["all", "All"], ["new", "Not exported"], ["done", "Exported"]].forEach(function (f) {
@@ -2040,12 +2276,148 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     let r = 0, u = 0, x = 0; list.forEach(function (e) { const hh = hoursOf(e); if (e.type === "Unrestricted") u += hh; else r += hh; if (e.exported) x++; });
     return { r: r, u: u, t: r + u, n: list.length, x: x };
   }
+  // ---------- CHECK MY ENTRIES (rule-based audit, runs only on this device; no AI) ----------
+  let chkFrom = null, chkTo = null, ripleyText = "", ripleyResult = null;
+  const TCO_RX = /^[A-I]\.\d+$/, ETH_RX = /^\d\.\d{2}$/;
+  function datesBetween(a, b) { const out = []; let d = a; while (d <= b) { out.push(d); d = shiftDate(d, 1); } return out; }
+  function isWeekday(iso) { const p = iso.split("-").map(Number); const w = new Date(p[0], p[1] - 1, p[2]).getDay(); return w !== 0 && w !== 6; }
+  function runChecks(from, to) {
+    const today = todayISO(), res = { empty: [], gaps: [], type: [], codes: [], overlap: [], names: [] };
+    // first date each block was logged under its current name, so older names before the change are not flagged
+    const newNameSeen = {};
+    Object.keys(S.days).sort().forEach(function (d) { (S.days[d] || []).forEach(function (e) { if (!e.blockId) return; const def = blockDef(e.blockId), k = baseIdOf(e.blockId); if (def && e.activity === def.name && !newNameSeen[k]) newNameSeen[k] = d; }); });
+    datesBetween(from, to).forEach(function (d) {
+      if (d >= today) return;
+      const list = S.days[d] || [];
+      if (isWeekday(d) && !list.length) { res.empty.push({ d: d }); return; }
+      if (isWeekday(d) && list.some(function (e) { return e.blockId; })) {
+        const done = {}; list.forEach(function (e) { if (e.blockId) done[e.blockId] = 1; });
+        const missing = daySchedule(d).filter(function (b) { return !b.optional && !done[b.id] && !list.some(function (e) { return mins(e.start) < mins(b.end) && mins(b.start) < mins(e.end); }); });
+        if (missing.length) res.gaps.push({ d: d, text: missing.map(function (b) { return b.name + " (" + fmtTime(b.start) + ")"; }).join(", ") });
+      }
+      list.forEach(function (e) {
+        const def = e.blockId ? blockDef(e.blockId) : null;
+        const coached = ((e.picks && e.picks.options) || []).indexOf(COACH_OPT) >= 0;
+        if (def && def.type !== e.type && !coached) res.type.push({ d: d, text: e.activity + " (" + fmtTime(e.start) + ") is " + e.type.toLowerCase() + ", but the block is " + def.type.toLowerCase() });
+        const badT = (e.tco || []).filter(function (c) { return ETH_RX.test(c); }), badE = (e.ethics || []).filter(function (c) { return TCO_RX.test(c); });
+        const sumBad = /TCOs:\s*\d\.\d{2}/.test(e.summary || "") || /Ethics:\s*[A-I]\.\d/.test(e.summary || "");
+        if (badT.length || badE.length || sumBad) res.codes.push({ d: d, text: e.activity + " (" + fmtTime(e.start) + "): TCO and Ethics codes look swapped" });
+        if (def && e.activity !== def.name && newNameSeen[baseIdOf(e.blockId)] && newNameSeen[baseIdOf(e.blockId)] < d) res.names.push({ d: d, text: "\u201c" + e.activity + "\u201d (" + fmtTime(e.start) + ") uses an old block name; you were already logging it as \u201c" + def.name + "\u201d on " + fmtDateShort(newNameSeen[baseIdOf(e.blockId)]).slice(0, 5) });
+      });
+      dayClashes(d).forEach(function (p) { res.overlap.push({ d: d, text: p[0].activity + " and " + p[1].activity + " overlap by " + p[2] + " min" }); });
+    });
+    return res;
+  }
+  function parseRipley(text) {
+    const lines = String(text || "").split(/\r?\n/); const rows = [];
+    const rx = /^([A-Z][a-z]+ \d{1,2}, \d{4})\t(\d{1,2}:\d{2} [AP]M)\t(\d{1,2}:\d{2} [AP]M)\t[^\t]*\t([\d.]+)\t([\d.]+)/;
+    const to24 = function (t) { const mm = t.match(/(\d{1,2}):(\d{2}) ([AP]M)/); let hh = +mm[1] % 12; if (mm[3] === "PM") hh += 12; return pad(hh) + ":" + mm[2]; };
+    for (let i = 0; i < lines.length; i++) {
+      const mm = lines[i].match(rx); if (!mm) continue;
+      const dt = new Date(mm[1]); if (isNaN(dt)) continue;
+      let summ = ""; for (let j = i + 1; j < lines.length; j++) { if (!lines[j].trim()) continue; if (rx.test(lines[j])) break; summ = lines[j].trim(); break; }
+      rows.push({ date: dt.getFullYear() + "-" + pad(dt.getMonth() + 1) + "-" + pad(dt.getDate()), start: to24(mm[2]), end: to24(mm[3]), type: +mm[4] > 0 ? "Restricted" : (+mm[5] > 0 ? "Unrestricted" : "?"), summary: summ });
+    }
+    return rows;
+  }
+  function compareRipley(rows) {
+    const norm = function (s) { return String(s || "").replace(/[\u201c\u201d]/g, '"').replace(/\s+/g, " ").trim(); };
+    const dates = {}; rows.forEach(function (r) { dates[r.date] = 1; });
+    const app = {}; Object.keys(dates).forEach(function (d) { (S.days[d] || []).forEach(function (e) { app[d + "|" + e.start] = e; }); });
+    const rip = {}; rows.forEach(function (r) { rip[r.date + "|" + r.start] = r; });
+    const res = { notInRipley: [], notInApp: [], type: [], time: [], text: [] };
+    Object.keys(app).sort().forEach(function (k) { if (!rip[k]) res.notInRipley.push({ d: app[k].date, text: app[k].activity + " (" + fmtTime(app[k].start) + "\u2013" + fmtTime(app[k].end) + ")" }); });
+    Object.keys(rip).sort().forEach(function (k) {
+      const r = rip[k], e = app[k];
+      if (!e) { res.notInApp.push({ d: r.date, text: fmtTime(r.start) + "\u2013" + fmtTime(r.end) + ": " + r.summary.slice(0, 70) + "\u2026" }); return; }
+      if (r.type !== e.type) res.type.push({ d: r.date, text: e.activity + " (" + fmtTime(e.start) + "): " + r.type.toLowerCase() + " in Ripley, " + e.type.toLowerCase() + " in the app" });
+      if (r.end !== e.end) res.time.push({ d: r.date, text: e.activity + ": ends " + fmtTime(r.end) + " in Ripley, " + fmtTime(e.end) + " in the app" });
+      else if (norm(r.summary) !== norm(e.summary)) res.text.push({ d: r.date, text: e.activity + " (" + fmtTime(e.start) + "): summary wording differs" });
+    });
+    return { rows: rows.length, res: res };
+  }
+  function checkSection(title, items, okText) {
+    const sec = h("section", { class: "chk-sec" }, [h("h3", {}, [title, h("span", { class: "chk-count" + (items.length ? " bad" : ""), text: items.length ? String(items.length) : "\u2713" })])]);
+    if (!items.length) { sec.appendChild(h("p", { class: "muted small", text: okText })); return sec; }
+    const ul = h("ul", { class: "chk-list" });
+    items.slice(0, 60).forEach(function (it) { ul.appendChild(h("li", {}, [h("button", { class: "link-btn chk-date", type: "button", text: fmtDateShort(it.d).slice(0, 5), onclick: function () { S.date = it.d; S.tab = "today"; render(); window.scrollTo(0, 0); } }), " " + (it.text || "Nothing logged")])); });
+    if (items.length > 60) ul.appendChild(h("li", { class: "muted small", text: "and " + (items.length - 60) + " more" }));
+    sec.appendChild(ul); return sec;
+  }
+  function renderCheck(v) {
+    const t = todayISO();
+    if (!chkFrom) chkFrom = t.slice(0, 8) + "01"; if (!chkTo) chkTo = t;
+    v.appendChild(h("div", { class: "panel" }, [
+      h("h2", { text: "Check my entries" }),
+      h("p", { class: "muted", text: "Simple rules, run on this device. Nothing is sent anywhere and no AI is used." }),
+      h("div", { class: "grid2" }, [
+        field("From", h("input", { type: "date", value: chkFrom, onchange: function () { chkFrom = this.value || chkFrom; renderLog(); } })),
+        field("To", h("input", { type: "date", value: chkTo, onchange: function () { chkTo = this.value || chkTo; renderLog(); } }))
+      ])
+    ]));
+    const r = runChecks(chkFrom, chkTo);
+    const box = h("div", { class: "panel" });
+    box.appendChild(checkSection("Weekdays with nothing logged", r.empty, "Every weekday has entries."));
+    box.appendChild(checkSection("Regular blocks not logged", r.gaps, "No gaps in your regular schedule."));
+    box.appendChild(checkSection("Restricted/unrestricted mismatches", r.type, "Every entry matches its block's type."));
+    box.appendChild(checkSection("Codes in the wrong boxes", r.codes, "TCO and Ethics codes are in the right places."));
+    box.appendChild(checkSection("Overlapping times", r.overlap, "No overlaps."));
+    box.appendChild(checkSection("Old block name after a change", r.names, "No entries use an old block name after you changed it."));
+    v.appendChild(box);
+    const ta = h("textarea", { rows: "5", class: "rip-paste", placeholder: "Paste your Ripley entry list here (date, times, hours, then the summary on the next line)", value: ripleyText, oninput: function () { ripleyText = this.value; } });
+    const rp = h("div", { class: "panel" }, [
+      h("h2", { text: "Compare with Ripley" }),
+      h("p", { class: "muted", text: "Copy your entries from Ripley and paste them below. The app lines them up by date and start time." }),
+      ta,
+      h("div", { class: "ex-btns", style: "margin-top:10px" }, [
+        h("button", { class: "btn", type: "button", text: "Compare", onclick: function () { ripleyResult = compareRipley(parseRipley(ripleyText)); renderLog(); } }),
+        ripleyResult ? h("button", { class: "btn btn-quiet", type: "button", text: "Clear", onclick: function () { ripleyText = ""; ripleyResult = null; renderLog(); } }) : null
+      ])
+    ]);
+    if (ripleyResult) {
+      const x = ripleyResult.res;
+      rp.appendChild(h("p", { class: "ex-count", text: ripleyResult.rows ? ripleyResult.rows + " Ripley entries read." : "No Ripley entries found in what was pasted. Check that each line starts with a date like \u201cOctober 20, 2026\u201d." }));
+      if (ripleyResult.rows) {
+        rp.appendChild(checkSection("In the app, not in Ripley", x.notInRipley, "Everything in the app for these dates is in Ripley."));
+        rp.appendChild(checkSection("In Ripley, not in the app", x.notInApp, "Everything in Ripley is in the app."));
+        rp.appendChild(checkSection("Different restricted/unrestricted", x.type, "Types match."));
+        rp.appendChild(checkSection("Different end times", x.time, "Times match."));
+        rp.appendChild(checkSection("Summary wording differs", x.text, "Summaries match."));
+      }
+    }
+    v.appendChild(rp);
+  }
+
+  // Runs of 5+ logged days where a block's whole summary is word-for-word the same.
+  function repeatRuns(month) {
+    const byBlock = {};
+    Object.keys(S.days).sort().forEach(function (d) {
+      (S.days[d] || []).forEach(function (e) {
+        if (!e.blockId) return; const k = baseIdOf(e.blockId);
+        // only entries that actually carry targets count; blocks without targets never trigger the warning
+        const hasTargets = !!targetSig(e.picks);
+        (byBlock[k] = byBlock[k] || []).push({ d: d, s: hasTargets ? String(e.summary || "").replace(/\s+/g, " ").trim() : null, name: e.activity });
+      });
+    });
+    const out = [];
+    Object.keys(byBlock).forEach(function (k) {
+      const list = byBlock[k]; let i = 0;
+      while (i < list.length) {
+        if (list[i].s === null) { i++; continue; }
+        let j = i; while (j + 1 < list.length && list[j + 1].s === list[i].s && list[j + 1].d !== list[j].d) j++;
+        const n = j - i + 1;
+        if (n >= CARRY_LIMIT && (list[j].d.slice(0, 7) === month || list[i].d.slice(0, 7) === month)) out.push({ name: (blockDef(k) || {}).name || list[i].name, from: list[i].d, to: list[j].d, n: n });
+        i = j + 1;
+      }
+    });
+    return out;
+  }
   function renderCalendar(v) {
     if (!calMonth) calMonth = S.date.slice(0, 7);
     const y = +calMonth.slice(0, 4), mo = +calMonth.slice(5) - 1;
     const first = new Date(y, mo, 1), daysIn = new Date(y, mo + 1, 0).getDate();
     const today = todayISO();
-    const required = S.settings.schedule.filter(function (b) { return !b.optional; }).map(function (b) { return b.id; });
+    const requiredFor = function (iso) { return daySchedule(iso).filter(function (b) { return !b.optional; }).map(function (b) { return b.id; }); };
     const shift = function (n) { const d = new Date(y, mo + n, 1); calMonth = d.getFullYear() + "-" + pad(d.getMonth() + 1); renderLog(); };
     let mt = 0, mr = 0, mu = 0, logged = 0, missing = 0, clashTotal = 0;
     const cells = [];
@@ -2055,7 +2427,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       const list = S.days[iso] || [], st = dayStats(list);
       mt += st.t; mr += st.r; mu += st.u; if (list.length) logged++;
       const blocksDone = {}; list.forEach(function (e) { if (e.blockId) blocksDone[e.blockId] = 1; });
-      const partial = list.length && !weekend && required.some(function (id) { return !blocksDone[id]; }) && list.some(function (e) { return e.blockId; });
+      const partial = list.length && !weekend && requiredFor(iso).some(function (id) { return !blocksDone[id]; }) && list.some(function (e) { return e.blockId; });
       const unlogged = !list.length && !weekend && iso <= today;
       const weekendOpen = !list.length && weekend;
       if (unlogged) missing++;
@@ -2079,6 +2451,10 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       h("h2", { text: label }),
       h("button", { class: "icon-btn", type: "button", "aria-label": "Next month", text: "\u203A", onclick: function () { shift(1); } })
     ]));
+    const runs = repeatRuns(calMonth);
+    if (runs.length) v.appendChild(h("div", { class: "repeat-box" }, [h("p", { class: "repeat-title", text: "\u26A0 Repeated entries" })].concat(runs.map(function (r) {
+      return h("button", { class: "link-btn repeat-row", type: "button", onclick: function () { S.date = r.to; S.tab = "today"; render(); window.scrollTo(0, 0); } }, [r.name + ": same summary " + r.n + " days in a row (" + fmtDateShort(r.from).slice(0, 5) + "\u2013" + fmtDateShort(r.to).slice(0, 5) + ")"]);
+    })).concat([h("p", { class: "muted small", style: "margin:0", text: "Repeating the core statement is fine. Check that targets and prompt levels still match what happened." })])));
     v.appendChild(h("p", { class: "month-stats cal-stats" }, [
       h("span", {}, [h("b", { text: fmtH(mt) + " h" }), " on " + logged + (logged === 1 ? " day" : " days")]),
       h("span", { class: "chip r", text: fmtH(mr) + " h restricted" }),
@@ -2168,7 +2544,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     let tot = 0, unr = 0; set.forEach(function (e) { const x = hoursOf(e); tot += x; if (e.type === "Unrestricted") unr += x; });
     const card = h("section", { class: "panel" }, [
       h("h2", { text: "Download for Ripley" }),
-      h("p", { class: "muted", text: "Creates an .xlsm laid out exactly like your Ripley sheet, with times written as text (07:30, 13:45), your copy-turns-green macro, and the Source Audit, Summary, and References tabs. A Daily Log tab is added at the end." }),
+      h("p", { class: "muted", text: "Creates an .xlsm laid out exactly like your Ripley sheet, with times written as text (07:30, 13:45), your copy-turns-green macro, and the Source Audit, Summary, and References tabs. Daily Log, Restricted, and Unrestricted tabs are added at the end." }),
       seg,
       exScope === "range" ? h("div", { class: "grid2 range" }, [
         field("From", h("input", { type: "date", value: exFrom, onchange: function () { exFrom = this.value; renderExport(); } })),
@@ -2361,7 +2737,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     function save() {
       sched.forEach(function (b) { if (!b.id) b.id = "b_" + uid(); b.name = b.name.trim() || "Untitled block"; });
       tpls.forEach(function (t) { t.name = t.name.trim() || "Untitled"; });
-      S.settings = { v: SCHEDULE_VERSION, custom: true, rolePicked: S.settings.rolePicked || "", schedule: sched, templates: tpls }; persistSettings(); render(); toast("Settings saved.");
+      S.settings = { v: SCHEDULE_VERSION, custom: true, rolePicked: S.settings.rolePicked || "", schedule: sched, templates: tpls, changes: S.settings.changes || {} }; persistSettings(); render(); toast("Settings saved.");
     }
     v.appendChild(h("section", { class: "panel" }, [
       h("h2", { text: "Daily schedule" }),
@@ -2385,6 +2761,126 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     v.appendChild(h("div", { class: "save-bar" }, [h("button", { class: "btn btn-primary", type: "button", text: "Save settings", onclick: save }), dirty]));
   }
 
+  // ---------- NOW VIEW (fast mobile documentation, opened with #now) ----------
+  const NOW = { on: false, idx: null, manual: false, key: null, st: null };
+  function nowSchedule() { return daySchedule(todayISO()); }
+  function pickNowIndex(list) {
+    const t = new Date(), cur = t.getHours() * 60 + t.getMinutes(), date = todayISO();
+    const logged = {}; (S.days[date] || []).forEach(function (e) { if (e.blockId) logged[e.blockId] = 1; });
+    let i = list.findIndex(function (b) { return mins(b.start) <= cur && cur < mins(b.end); });
+    if (i >= 0) {
+      // if the current block just started and the previous one isn't logged, show the one that just ended
+      const prev = i - 1;
+      if (prev >= 0 && !logged[list[prev].id] && cur - mins(list[i].start) < 5) return prev;
+      return i;
+    }
+    let lastEnded = -1; list.forEach(function (b, k) { if (mins(b.end) <= cur) lastEnded = k; });
+    if (lastEnded >= 0 && !logged[list[lastEnded].id] && lastEnded < list.length - 1) return lastEnded;
+    const next = list.findIndex(function (b) { return mins(b.start) > cur; });
+    return next >= 0 && lastEnded >= 0 ? next : null;
+  }
+  function nowState(b) {
+    const date = todayISO(), key = date + "|" + b.id;
+    if (NOW.key === key && NOW.st) return NOW.st;
+    const e = (S.days[date] || []).find(function (x) { return x.blockId === b.id; });
+    const picks = e ? clone(e.picks || usualPicks(b)) : startPicks(b, date);
+    ["areas", "options", "others"].forEach(function (k) { picks[k] = picks[k] || []; });
+    NOW.key = key; NOW.st = { picks: picks, other: picks.others.join("; "), logged: !!e };
+    return NOW.st;
+  }
+  function saveNow(b) {
+    const date = todayISO(), st = nowState(b);
+    const e = (S.days[date] || []).find(function (x) { return x.blockId === b.id; });
+    const n = e ? clone(e) : newFromBlock(b);
+    n.date = date; n.start = n.start || b.start; n.end = n.end || b.end;
+    st.picks.others = st.other.split(";").map(function (s) { return s.trim(); }).filter(Boolean);
+    n.picks = clone(st.picks);
+    if (b.type === "Restricted") n.type = n.picks.options.indexOf(COACH_OPT) >= 0 ? "Unrestricted" : "Restricted";
+    if (!n.summaryEdited) n.summary = buildSummary(n, blockDef(b.id));
+    if (e && e.exported && n.summary !== e.summary) n.exported = false;
+    upsertEntry(n); rememberWord(b.id, n.picks);
+    NOW.key = null; NOW.st = null;
+    toast(b.name + " logged.");
+    renderNow();
+  }
+  function renderNow() {
+    const v = $("#now-view"); if (!NOW.on) { v.hidden = true; return; }
+    v.hidden = false; v.replaceChildren();
+    if (S.date !== todayISO()) S.date = todayISO();
+    const date = todayISO(), list = nowSchedule();
+    const dayH = (S.days[date] || []).reduce(function (s, e) { return s + hoursOf(e); }, 0);
+    v.appendChild(h("div", { class: "now-top" }, [h("div", {}, [h("h1", { text: "Now" }), h("p", { class: "muted", style: "margin:0", text: fmtDateLong(date) + " \u00b7 " + fmtH(dayH) + " h logged" })]), h("span", { id: "now-sync", class: "sync-chip " + (S.mode === "cloud" ? "ok" : "wait"), text: S.mode === "cloud" ? "Synced" : (STANDALONE ? "Saved on this device" : "Connecting\u2026") })]));
+    const dow = new Date().getDay(), weekend = dow === 0 || dow === 6;
+    if (!NOW.manual || NOW.idx == null || NOW.idx >= list.length) NOW.idx = weekend ? null : pickNowIndex(list);
+    const bar = h("div", { class: "now-bar" });
+    const different = h("button", { class: "btn btn-quiet", type: "button", text: "We did something different", onclick: openChangeDialog });
+    if (NOW.idx == null) {
+      const logged = {}; (S.days[date] || []).forEach(function (e) { if (e.blockId) logged[e.blockId] = 1; });
+      const unl = weekend ? [] : list.filter(function (b) { return !logged[b.id] && !b.optional && mins(b.end) <= new Date().getHours() * 60 + new Date().getMinutes(); });
+      v.appendChild(h("div", { class: "now-empty" }, [
+        h("h2", { text: weekend ? "No school schedule today" : "Nothing scheduled right now" }),
+        weekend ? h("p", { class: "muted", text: "Log any unrestricted work you did." }) : null,
+        unl.length ? h("p", { class: "flabel", text: "Not logged yet today" }) : null,
+        unl.length ? h("div", { class: "now-unlogged" }, unl.map(function (b) { return h("button", { type: "button", onclick: function () { NOW.manual = true; NOW.idx = list.indexOf(b); renderNow(); } }, [h("b", { text: b.name }), " \u00b7 " + fmtTime(b.start) + "\u2013" + fmtTime(b.end)]); })) : null,
+        list.length && !weekend ? h("button", { class: "link-btn", type: "button", text: "Show today\u2019s schedule", onclick: function () { NOW.manual = true; NOW.idx = 0; renderNow(); } }) : null
+      ]));
+      bar.appendChild(h("button", { class: "btn btn-primary", type: "button", text: weekend ? "Add unrestricted work" : "Add other work", onclick: function () { openTemplatePicker(); } }));
+      if (!weekend) bar.appendChild(different);
+    } else {
+      const b = list[NOW.idx], st = nowState(b), def = blockDef(b.id);
+      const cur = new Date().getHours() * 60 + new Date().getMinutes();
+      const label = mins(b.start) <= cur && cur < mins(b.end) ? "Happening now" : (mins(b.end) <= cur ? "Earlier today" : "Coming up");
+      v.appendChild(h("div", { class: "now-nav" }, [
+        h("button", { class: "icon-btn", type: "button", "aria-label": "Previous block", text: "\u2039", disabled: NOW.idx <= 0, onclick: function () { NOW.manual = true; NOW.idx = Math.max(0, NOW.idx - 1); renderNow(); } }),
+        h("div", { class: "now-when" }, [h("div", { class: "lab", text: label }), h("div", { class: "t", text: fmtTime(b.start) + " \u2013 " + fmtTime(b.end) })]),
+        h("button", { class: "icon-btn", type: "button", "aria-label": "Next block", text: "\u203A", disabled: NOW.idx >= list.length - 1, onclick: function () { NOW.manual = true; NOW.idx = Math.min(list.length - 1, NOW.idx + 1); renderNow(); } })
+      ]));
+      const card = h("div", { class: "now-card" });
+      card.appendChild(h("p", { class: "now-name" }, [b.name, h("span", { class: "chip " + (b.type === "Restricted" ? "r" : "u"), text: b.type })]));
+      if (st.logged) card.appendChild(h("p", { class: "now-logged", style: "margin:0" }, [svgCheck(), "Logged. Saving again updates it."]));
+      if (def && def.areas && def.areas.length) { card.appendChild(h("span", { class: "flabel", text: "Areas" })); card.appendChild(pills(def.areas, st.picks.areas, "")); }
+      if (def && def.options && def.options.length) {
+        const wordIn = h("input", { type: "text", class: "now-other", value: st.picks.word || "", placeholder: "Word of the Week", hidden: st.picks.options.indexOf(WOTW) < 0, oninput: function () { st.picks.word = this.value; } });
+        const ncb = carryBanner(st.picks, function () { renderNow(); }); if (ncb) card.appendChild(ncb);
+        const tr = targetRows(def.options, st.picks, null);
+        card.appendChild(h("span", { class: "flabel", text: "What you did" }));
+        card.appendChild(pills(def.options, st.picks.options, "", function () { wordIn.hidden = st.picks.options.indexOf(WOTW) < 0; tr.sync(); }));
+        if (def.options.indexOf(WOTW) >= 0) card.appendChild(wordIn);
+        if (tr.any) card.appendChild(tr.el);
+      }
+      if (b.type === "Restricted") card.appendChild(promptRow(st.picks, null));
+      card.appendChild(h("input", { type: "text", class: "now-other", value: st.other, placeholder: "Anything else? Separate with ;", "aria-label": "Anything else", oninput: function () { st.other = this.value; } }));
+      v.appendChild(card);
+      bar.appendChild(different);
+      bar.appendChild(h("button", { class: "btn btn-primary", type: "button", text: st.logged ? "Update" : "Save", onclick: function () { saveNow(b); } }));
+    }
+    v.appendChild(h("div", { class: "now-links" }, [
+      h("button", { class: "link-btn", type: "button", text: "Back to now", hidden: !NOW.manual, onclick: function () { NOW.manual = false; NOW.idx = null; renderNow(); } }),
+      h("button", { class: "link-btn", type: "button", text: "Open the full app", onclick: function () { try { sessionStorage.setItem(SS_FULL, "1"); } catch (e) {} if (location.hash === "#now") location.hash = ""; else setNowMode(); } }),
+      h("button", { class: "link-btn now-forget", type: "button", text: "Stop opening this phone view by default", onclick: function () { rememberNowDevice(false); try { sessionStorage.setItem(SS_FULL, "1"); } catch (e) {} if (location.hash === "#now") location.hash = ""; else setNowMode(); toast("This device will open the full app."); } })
+    ]));
+    v.appendChild(bar);
+  }
+  // A device remembers the phone view once #now has been opened on it, so a home-screen icon
+  // (which may drop the #now part) still opens straight into it. Desktop browsers never see it.
+  const LS_NOWDEV = "feb-demo.nowdevice.v1", SS_FULL = "reb.fullthisvisit";
+  function nowPreferred() {
+    let dev = false, full = false;
+    try { dev = localStorage.getItem(LS_NOWDEV) === "1"; } catch (e) {}
+    try { full = sessionStorage.getItem(SS_FULL) === "1"; } catch (e) {}
+    let standalone = false;
+    try { standalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches; } catch (e) {}
+    return location.hash === "#now" || ((dev || standalone) && !full);
+  }
+  function rememberNowDevice(on) { try { if (on) localStorage.setItem(LS_NOWDEV, "1"); else localStorage.removeItem(LS_NOWDEV); } catch (e) {} }
+  function setNowMode() {
+    if (location.hash === "#now") { rememberNowDevice(true); try { sessionStorage.removeItem(SS_FULL); } catch (e) {} }
+    const on = nowPreferred();
+    NOW.on = on; document.body.classList.toggle("now-mode", on);
+    if (on) { S.date = todayISO(); NOW.manual = false; NOW.idx = null; NOW.key = null; NOW.st = null; }
+    render();
+  }
+
   // ---------- routing ----------
   function render() {
     renderTotals();
@@ -2393,6 +2889,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       const b = $("#tab-" + t); b.setAttribute("aria-selected", S.tab === t ? "true" : "false");
     });
     if (S.tab === "today") renderToday(); else if (S.tab === "log") renderLog(); else if (S.tab === "export") renderExport(); else renderSettings();
+    if (NOW.on) renderNow(); else $("#now-view").hidden = true;
     renderSessionBar();
   }
   function renderSessionBar() {
@@ -2424,6 +2921,12 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   }
   function init() {
     readLocal(); loadSession();
+    // Until your account's latest schedule and entries load, logging is paused so nothing is built from an old copy.
+    if (!STANDALONE && window.claude && typeof window.claude.use === "function") document.body.classList.add("connecting");
+    if (location.hash === "#now") { rememberNowDevice(true); try { sessionStorage.removeItem(SS_FULL); } catch (e) {} }
+    NOW.on = nowPreferred(); document.body.classList.toggle("now-mode", NOW.on);
+    window.addEventListener("hashchange", setNowMode);
+    setInterval(function () { if (NOW.on && !NOW.manual && !$("#dlg").open) { const d = new Date().getDay(); const i = (d === 0 || d === 6) ? null : pickNowIndex(nowSchedule()); if (i !== NOW.idx) renderNow(); } }, 60000);
     ["today", "log", "export", "settings"].forEach(function (t) { $("#tab-" + t).addEventListener("click", function () { S.tab = t; render(); window.scrollTo(0, 0); }); });
     $("#dlg").addEventListener("click", function (ev) { if (ev.target === this) this.close(); });
     render();

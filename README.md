@@ -1,25 +1,30 @@
 # Fieldwork Entry Builder (Demo)
 
-A free web app for logging behavior-analytic fieldwork hours and downloading them as a spreadsheet ready to enter into Ripley.
-
-**Try it:** open the GitHub Pages link for this repo.
+A free web app for logging behavior-analytic fieldwork hours and downloading them as a spreadsheet ready to enter into Ripley. No account needed.
 
 ## Take the tour
 
-1. On the **Today** tab, tap **Load a sample week** to fill in a week of example entries.
-2. Open **Entries** to see the calendar, shaded brown for restricted and green for unrestricted hours.
-3. Open **Export** and download the spreadsheet.
-4. When you're done exploring, go to **Export > Backup > Clear all entries**.
+1. Pick a starter schedule (classroom teacher, administrator, or blank).
+2. On the **Today** tab, tap **Load a sample week**.
+3. Open **Entries** to see the calendar and the **Check** tab.
+4. Open **Export** and download the spreadsheet.
+5. When you're done exploring, go to **Export > Backup > Clear all entries**.
 
-## Make it yours
+## Use it on your phone
 
-- **Schedule tab:** edit the sample school day to match yours, or tap **Start with an empty schedule** and build your own.
-- **Fill in the day:** tick a whole day's activities in one pass.
-- **Add other work:** 60+ unrestricted activities (materials, data, assessment, planning, working with others), each with a checklist that builds the summary for you.
+Everything works on one phone, and the phone view and the full app share the same entries.
+
+1. On your phone, open the app link with **#now** on the end (the same address, plus `#now`).
+2. Add it to your home screen (iPhone: Share > Add to Home Screen). From then on, that phone opens straight into the quick phone view.
+3. During the day: the phone view shows what's happening now. Tick what you did and tap **Save**. Use **We did something different** for schedule changes.
+4. To export: tap **Open the full app**, go to **Export**, and download. Email it to yourself or save it to Drive or OneDrive.
 
 ## Your data
 
-Everything stays in your own browser on your own device. Nothing is sent anywhere. Entries don't sync between computers, so use **Export > Backup** to move them or keep a safe copy.
+Everything stays in your own browser on your own device. Nothing is sent anywhere, and no AI is used.
+
+- Entries don't sync between devices. To move them, use **Export > Backup** on one device and **Restore** on the other.
+- Clearing your browser data erases your entries, so download a backup now and then.
 
 ## Please note
 

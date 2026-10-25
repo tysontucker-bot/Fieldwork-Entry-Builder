@@ -1603,7 +1603,11 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       h("p", {}, [h("strong", { text: fmtH(dayH) + " h" }), " logged on this day across " + entries.length + (entries.length === 1 ? " entry" : " entries")]),
       h("div", { class: "day-actions" }, [
         h("button", { class: "btn", type: "button", text: "Fill in the day", onclick: function () { startQuick(); } }),
-        remaining.length ? h("button", { class: "btn btn-quiet", type: "button", text: "Log " + remaining.length + " remaining with usual specifics", onclick: function () { logAllRemaining(remaining); } }) : null,
+        (function () {
+          const rest = restOfDay(S.date);
+          if (!rest.blocks.length) return null;
+          return h("button", { class: "btn " + (rest.dayOver ? "" : "btn-quiet"), type: "button", text: rest.dayOver ? "Review the rest of the day (" + rest.blocks.length + ")" : "Review blocks so far (" + rest.blocks.length + ")", onclick: function () { startQuick(true); } });
+        })(),
         h("button", { class: "btn btn-quiet", type: "button", text: "Add other work", onclick: function () { openTemplatePicker(); } }),
         h("button", { class: "btn btn-quiet", type: "button", text: "Schedule change", onclick: openChangeDialog }),
         entries.length ? deleteDayButton(S.date) : null
@@ -1751,10 +1755,25 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   function prevLoggedDay(date) {
     return Object.keys(S.days).filter(function (d) { return d < date && (S.days[d] || []).some(function (e) { return e.blockId && blockDef(e.blockId); }); }).sort().pop() || null;
   }
-  function startQuick() {
+  // Blocks still to log: not logged, not covered by another entry, and (today) already over.
+  function restOfDay(date) {
+    const entries = S.days[date] || []; const logged = {}; entries.forEach(function (e) { if (e.blockId) logged[e.blockId] = 1; });
+    const today = todayISO(), t = new Date(), now = t.getHours() * 60 + t.getMinutes();
+    const list = daySchedule(date);
+    const blocks = list.filter(function (b) {
+      if (logged[b.id] || b.optional) return false;
+      if (date === today && mins(b.end) > now) return false;
+      return !entries.some(function (e) { return mins(e.start) < mins(b.end) && mins(b.start) < mins(e.end); });
+    });
+    const last = list.reduce(function (mx, b) { return Math.max(mx, mins(b.end)); }, 0);
+    return { blocks: blocks, dayOver: date < today || (date === today && now >= last) };
+  }
+  function startQuick(onlyRest) {
     const entries = S.days[S.date] || []; const logged = {}; entries.forEach(function (e) { if (e.blockId) logged[e.blockId] = e; });
-    Q = { date: S.date, rows: {} };
+    Q = { date: S.date, rows: {}, onlyRest: !!onlyRest };
+    const restIds = {}; if (onlyRest) restOfDay(S.date).blocks.forEach(function (b) { restIds[b.id] = 1; });
     daySchedule(S.date).forEach(function (b) {
+      if (onlyRest && !restIds[b.id]) return;
       const e = logged[b.id];
       Q.rows[b.id] = { include: e ? true : !b.optional, wasLogged: !!e, picks: e ? clone(e.picks || usualPicks(b)) : startPicks(b, S.date), other: "" };
       const p = Q.rows[b.id].picks; ["areas", "options", "others"].forEach(function (k) { p[k] = p[k] || []; });
@@ -1766,6 +1785,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     const logged = {}; (S.days[src] || []).forEach(function (e) { if (e.blockId) logged[e.blockId] = e; });
     daySchedule(Q.date).forEach(function (b) {
       const r = Q.rows[b.id], e = logged[b.id];
+      if (!r) return;
       if (e) { r.include = true; r.picks = clone(e.picks || usualPicks(b)); ["areas", "options", "others"].forEach(function (k) { r.picks[k] = r.picks[k] || []; }); r.other = r.picks.others.join("; "); }
       else r.include = false;
     });
@@ -1774,8 +1794,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   function renderQuick(v) {
     const src = prevLoggedDay(S.date);
     v.appendChild(h("div", { class: "quick-head" }, [
-      h("div", {}, [h("h2", { text: "Fill in " + fmtDateLong(S.date) }),
-        h("p", { class: "muted", text: "Your usual specifics are already ticked. Untick a block you skipped and tap anything that was different today." })]),
+      h("div", {}, [h("h2", { text: (Q.onlyRest ? "Review the rest of " : "Fill in ") + fmtDateLong(S.date) }),
+        h("p", { class: "muted", text: Q.onlyRest ? "These blocks aren\u2019t logged yet. Check each one: untick anything that didn\u2019t happen, add today\u2019s targets and prompt levels, then save." : "Your usual specifics are already ticked. Untick a block you skipped and tap anything that was different today." })]),
       src ? h("button", { class: "btn btn-quiet btn-sm", type: "button", text: "Same as " + fmtDateLong(src).replace(/,.*$/, "") + " " + fmtDateShort(src).slice(0, 5), onclick: function () { copyFromDay(src); } }) : null
     ]));
     const count = h("span"); 
@@ -1787,6 +1807,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     const list = h("div", { class: "qlist" });
     daySchedule(Q.date).forEach(function (b) {
       const r = Q.rows[b.id];
+      if (!r) return;
       const body = h("div", { class: "q-body", hidden: !r.include });
       const card = h("section", { class: "q-card" + (r.include ? "" : " off") });
       const head = h("label", { class: "q-head" }, [
@@ -1898,6 +1919,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     const before = clone(entries); let saved = 0, removed = 0;
     daySchedule(Q.date).forEach(function (b) {
       const r = Q.rows[b.id], e = logged[b.id];
+      if (!r) return;
       r.picks.others = r.other.split(";").map(function (s) { return s.trim(); }).filter(Boolean);
       if (!r.include) { if (e) { removeEntry(e); removed++; } return; }
       const n = e ? clone(e) : newFromBlock(b);

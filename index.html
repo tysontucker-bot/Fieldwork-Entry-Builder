@@ -122,6 +122,10 @@ p{margin:0 0 12px}
 .file-btn{position:relative;display:inline-block}
 .file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .storage{margin-top:8px}
+.q-codes{border:1px solid var(--line);border-radius:10px;background:var(--sunk);margin-top:6px}
+.q-codes>summary{cursor:pointer;padding:8px 12px;font-size:.875rem;font-weight:700;color:var(--muted);list-style:revert}
+.qc-list{margin:0;padding:0 12px 8px 30px;display:grid;gap:4px;font-size:.875rem}
+.q-codes .picker{margin:0 12px 10px}
 .chk-sec{padding:10px 0;border-top:1px solid var(--line)}
 .chk-sec:first-child{border-top:0}
 .chk-sec h3{display:flex;justify-content:space-between;align-items:center;font-size:1rem;margin:0 0 4px}
@@ -1792,7 +1796,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     daySchedule(S.date).forEach(function (b) {
       if (onlyRest && !restIds[b.id]) return;
       const e = logged[b.id];
-      Q.rows[b.id] = { include: e ? true : !b.optional, wasLogged: !!e, picks: e ? clone(e.picks || usualPicks(b)) : startPicks(b, S.date), other: "" };
+      Q.rows[b.id] = { include: e ? true : !b.optional, wasLogged: !!e, picks: e ? clone(e.picks || usualPicks(b)) : startPicks(b, S.date), other: "", tco: (e ? e.tco : b.tco || []).slice(), ethics: (e ? e.ethics : b.ethics || []).slice() };
       const p = Q.rows[b.id].picks; ["areas", "options", "others"].forEach(function (k) { p[k] = p[k] || []; });
       Q.rows[b.id].other = p.others.join("; "); 
     });
@@ -1846,6 +1850,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         if (qtr.any) body.appendChild(qtr.el);
         if (b.type === "Restricted") body.appendChild(promptRow(r.picks, null));
       }
+      if (!r.tco) { r.tco = (b.tco || []).slice(); r.ethics = (b.ethics || []).slice(); }
+      body.appendChild(codesDropdown(r, b, body));
       body.appendChild(h("input", { type: "text", class: "q-other", value: r.other, placeholder: "Anything else? Separate with ;", "aria-label": "Other activities for " + b.name, oninput: function () { r.other = this.value; } }));
       card.appendChild(body);
       list.appendChild(card);
@@ -1940,7 +1946,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       r.picks.others = r.other.split(";").map(function (s) { return s.trim(); }).filter(Boolean);
       if (!r.include) { if (e) { removeEntry(e); removed++; } return; }
       const n = e ? clone(e) : newFromBlock(b);
-      n.date = Q.date; n.picks = r.picks;
+      n.date = Q.date; n.picks = r.picks; if (r.tco) { n.tco = r.tco.slice(); n.ethics = r.ethics.slice(); }
       if (b.type === "Restricted") n.type = r.picks.options.indexOf(COACH_OPT) >= 0 ? "Unrestricted" : "Restricted";
       if (!n.summaryEdited) n.summary = buildSummary(n, b);
       if (e && e.exported && n.summary !== e.summary) n.exported = false;
@@ -2213,6 +2219,31 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       } }), h("span", { text: it })]));
     });
     g.appendChild(wrap); return g;
+  }
+  // Code descriptions for quick views
+  function codeDesc(c) {
+    const src = /^\d/.test(c) ? ETHICS_DATA : TCO_DATA;
+    for (const k in src) { const hit = (src[k].codes || []).find(function (x) { return x[0] === c; }); if (hit) return hit[1]; }
+    return "";
+  }
+  // A collapsed "Codes" dropdown for Fill in the day, Review, and the Now view: shows the codes (with what each means) and lets you change them.
+  function codesDropdown(state, def, host) {
+    const sum = h("summary", {}); const list = h("ul", { class: "qc-list" });
+    const det = h("details", { class: "q-codes" }, [sum]);
+    const refresh = function () {
+      const c = effCodes(state, def);
+      sum.textContent = "Codes \u00b7 TCOs: " + (c.tco.join(", ") || "none") + " \u00b7 Ethics: " + (c.ethics.join(", ") || "none");
+      list.replaceChildren();
+      c.tco.concat(c.ethics).forEach(function (code) {
+        const auto = (c.added.tco.indexOf(code) >= 0 || c.added.ethics.indexOf(code) >= 0) && (state.tco || []).indexOf(code) < 0 && (state.ethics || []).indexOf(code) < 0;
+        list.appendChild(h("li", {}, [h("b", { text: code }), " " + (codeDesc(code) || "") + (auto ? " (added by what you ticked)" : "")]));
+      });
+    };
+    det.appendChild(list);
+    const cp = codePicker(state, function () { refresh(); }); det.appendChild(cp.el);
+    if (host) host.addEventListener("change", refresh);
+    refresh();
+    return det;
   }
   function codePicker(d, onChange) {
     const det = h("details", { class: "picker" }, [h("summary", { text: "Add or change codes" })]);
@@ -2824,7 +2855,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     const e = (S.days[date] || []).find(function (x) { return x.blockId === b.id; });
     const picks = e ? clone(e.picks || usualPicks(b)) : startPicks(b, date);
     ["areas", "options", "others"].forEach(function (k) { picks[k] = picks[k] || []; });
-    NOW.key = key; NOW.st = { picks: picks, other: picks.others.join("; "), logged: !!e };
+    NOW.key = key; NOW.st = { picks: picks, other: picks.others.join("; "), logged: !!e, tco: (e ? e.tco : b.tco || []).slice(), ethics: (e ? e.ethics : b.ethics || []).slice() };
     return NOW.st;
   }
   function saveNow(b) {
@@ -2833,7 +2864,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     const n = e ? clone(e) : newFromBlock(b);
     n.date = date; n.start = n.start || b.start; n.end = n.end || b.end;
     st.picks.others = st.other.split(";").map(function (s) { return s.trim(); }).filter(Boolean);
-    n.picks = clone(st.picks);
+    n.picks = clone(st.picks); n.tco = st.tco.slice(); n.ethics = st.ethics.slice();
     if (b.type === "Restricted") n.type = n.picks.options.indexOf(COACH_OPT) >= 0 ? "Unrestricted" : "Restricted";
     if (!n.summaryEdited) n.summary = buildSummary(n, blockDef(b.id));
     if (e && e.exported && n.summary !== e.summary) n.exported = false;
@@ -2888,6 +2919,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         if (tr.any) card.appendChild(tr.el);
       }
       if (b.type === "Restricted") card.appendChild(promptRow(st.picks, null));
+      card.appendChild(codesDropdown(st, def, card));
       card.appendChild(h("input", { type: "text", class: "now-other", value: st.other, placeholder: "Anything else? Separate with ;", "aria-label": "Anything else", oninput: function () { st.other = this.value; } }));
       v.appendChild(card);
       bar.appendChild(different);

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>window.__STANDALONE__ = true;</script>
+<script>window.__STANDALONE__ = true; window.__TIME_PARTS__ = true;</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Fieldwork Entry Builder (Demo)</title>
@@ -933,15 +933,27 @@ async function buildRipleyXlsm(JSZip, entries, templateB64, opts) {
 
   // Sheet 1: Ripley Fieldwork
   const R = ' ht="46.5" customHeight="1" x14ac:dyDescent="0.25"';
-  let rows = '<row r="1" spans="1:8"' + R + ">" + str("A1", 1, "Date") + str("B1", 13, "Start") + str("C1", 13, "End") + str("D1", 1, "Hours") + str("E1", 1, "Activity") + str("F1", 1, "Type") + str("G1", 1, "Summary") + str("H1", 1, "Hour Type") + "</row>";
+  // opts.timeParts: times split into hour, minutes, and AM/PM columns, matching Ripley's separate boxes (demo only)
+  const TP = !!opts.timeParts;
+  const tParts = function (t) { const p = String(t || "0:00").split(":").map(Number); return { h: (p[0] % 12) || 12, m: String(p[1] || 0).padStart(2, "0"), ap: p[0] >= 12 ? "PM" : "AM" }; };
+  const C = TP ? { hrs: "H", act: "I", type: "J", sum: "K", ht: "L", last: "K", n: 12 } : { hrs: "D", act: "E", type: "F", sum: "G", ht: "H", last: "G", n: 8 };
+  const timeHead = function (r) { return TP ? str("B" + r, 13, "Start Hour") + str("C" + r, 13, "Start Minutes") + str("D" + r, 13, "Start AM/PM") + str("E" + r, 13, "End Hour") + str("F" + r, 13, "End Minutes") + str("G" + r, 13, "End AM/PM") : str("B" + r, 13, "Start") + str("C" + r, 13, "End"); };
+  const timeCells = function (r, e) {
+    if (!TP) return str("B" + r, 15, e.start) + str("C" + r, 15, e.end);
+    const s = tParts(e.start), en = tParts(e.end);
+    return num("B" + r, 15, s.h) + str("C" + r, 15, s.m) + str("D" + r, 15, s.ap) + num("E" + r, 15, en.h) + str("F" + r, 15, en.m) + str("G" + r, 15, en.ap);
+  };
+  const colsXml = TP ? '<cols><col min="2" max="7" width="13" customWidth="1" style="16"/><col min="9" max="9" width="30" customWidth="1"/><col min="11" max="11" width="160" customWidth="1"/></cols>' : '<cols><col min="2" max="3" width="16.5703125" style="16"/><col min="7" max="7" width="192.42578125" customWidth="1"/></cols>';
+  let rows = '<row r="1" spans="1:' + C.n + '"' + R + ">" + str("A1", 1, "Date") + timeHead(1) + str(C.hrs + "1", 1, "Hours") + str(C.act + "1", 1, "Activity") + str(C.type + "1", 1, "Type") + str(C.sum + "1", 1, "Summary") + str(C.ht + "1", 1, "Hour Type") + "</row>";
   let tot = 0, unr = 0;
   sorted.forEach(function (e, i) {
     const r = i + 2, h = hrs(e); tot += h; if (e.type === "Unrestricted") unr += h;
-    rows += '<row r="' + r + '" spans="1:7"' + R + ">" + num("A" + r, 2, serial(e.date)) + str("B" + r, 15, e.start) + str("C" + r, 15, e.end) + num("D" + r, 4, h) + str("E" + r, 3, e.activity) + str("F" + r, 3, e.type) + str("G" + r, 3, e.summary) + "</row>";
+    rows += '<row r="' + r + '" spans="1:' + (C.n - 1) + '"' + R + ">" + num("A" + r, 2, serial(e.date)) + timeCells(r, e) + num(C.hrs + r, 4, h) + str(C.act + r, 3, e.activity) + str(C.type + r, 3, e.type) + str(C.sum + r, 3, e.summary) + "</row>";
   });
   tot = r2(tot); unr = r2(unr);
   const last = sorted.length + 1;
-  zip.file("xl/worksheets/sheet1.xml", head + '<sheetPr codeName="Sheet1"/><dimension ref="A1:H' + last + '"/><sheetViews><sheetView tabSelected="1" zoomScale="85" zoomScaleNormal="85" workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/></sheetView></sheetViews><sheetFormatPr defaultColWidth="16.5703125" defaultRowHeight="46.5" customHeight="1" x14ac:dyDescent="0.25"/><cols><col min="2" max="3" width="16.5703125" style="16"/><col min="7" max="7" width="192.42578125" customWidth="1"/></cols><sheetData>' + rows + '</sheetData><autoFilter ref="A1:G1"/>' + margins);
+  zip.file("xl/worksheets/sheet1.xml", head + '<sheetPr codeName="Sheet1"/><dimension ref="A1:' + C.ht + last + '"/><sheetViews><sheetView tabSelected="1" zoomScale="85" zoomScaleNormal="85" workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/></sheetView></sheetViews><sheetFormatPr defaultColWidth="16.5703125" defaultRowHeight="46.5" customHeight="1" x14ac:dyDescent="0.25"/>' + colsXml + '<sheetData>' + rows + '</sheetData><autoFilter ref="A1:' + C.last + '1"/>' + margins);
+  if (TP) { let wbf = await zip.file("xl/workbook.xml").async("string"); wbf = wbf.replace("'Ripley Fieldwork'!$A$1:$G$1", "'Ripley Fieldwork'!$A$1:$K$1"); zip.file("xl/workbook.xml", wbf); }
 
   // Sheet 2: Source Audit
   const stamp = opts.exportedOn || "";
@@ -962,9 +974,9 @@ async function buildRipleyXlsm(JSZip, entries, templateB64, opts) {
   const sRow = function (r, cells, ht) { return '<row r="' + r + '" spans="1:2"' + (ht ? ' ht="' + ht + '"' : "") + ' x14ac:dyDescent="0.25">' + cells.join("") + "</row>"; };
   const pct = tot ? Math.round(unr / tot * 1000) / 10 : 0;
   let s = sRow(1, [str("A1", 6, "Ripley-Ready Fieldwork Summary"), empty("B1", 5)], 42);
-  s += sRow(2, [str("A2", 5, "Total Hours"), fml("B2", 5, "SUM('Ripley Fieldwork'!D:D)", tot)]);
-  s += sRow(3, [str("A3", 5, "Unrestricted Hours"), fml("B3", 5, "SUMIF('Ripley Fieldwork'!F:F,\"Unrestricted\",'Ripley Fieldwork'!D:D)", unr)]);
-  s += sRow(4, [str("A4", 5, "Restricted Hours"), fml("B4", 5, "SUMIF('Ripley Fieldwork'!F:F,\"Restricted\",'Ripley Fieldwork'!D:D)", r2(tot - unr))]);
+  s += sRow(2, [str("A2", 5, "Total Hours"), fml("B2", 5, "SUM('Ripley Fieldwork'!" + C.hrs + ":" + C.hrs + ")", tot)]);
+  s += sRow(3, [str("A3", 5, "Unrestricted Hours"), fml("B3", 5, "SUMIF('Ripley Fieldwork'!" + C.type + ":" + C.type + ",\"Unrestricted\",'Ripley Fieldwork'!" + C.hrs + ":" + C.hrs + ")", unr)]);
+  s += sRow(4, [str("A4", 5, "Restricted Hours"), fml("B4", 5, "SUMIF('Ripley Fieldwork'!" + C.type + ":" + C.type + ",\"Restricted\",'Ripley Fieldwork'!" + C.hrs + ":" + C.hrs + ")", r2(tot - unr))]);
   s += sRow(5, [str("A5", 5, "Unrestricted %"), fml("B5", 5, "IF(B2=0,0,ROUND(B3/B2*100,1))", pct)]);
   s += sRow(6, [str("A6", 5, "Unique Entries"), fml("B6", 5, "COUNTA('Ripley Fieldwork'!A:A)-1", sorted.length)]);
   s += sRow(7, [empty("A7", 5), empty("B7", 5)]);
@@ -984,8 +996,8 @@ async function buildRipleyXlsm(JSZip, entries, templateB64, opts) {
       const r = i + 2, d = by[iso], p = iso.split("-").map(Number), rr = r2(d.r), uu = r2(d.u), tt = r2(d.r + d.u);
       dl += '<row r="' + r + '" spans="1:8" x14ac:dyDescent="0.25">' + num("A" + r, 2, serial(iso)) + str("B" + r, 3, dn[new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay()]) +
         fml("C" + r, 3, "COUNTIF(" + F + "A:A,A" + r + ")", d.n) +
-        fml("D" + r, 4, "SUMIFS(" + F + "D:D," + F + "A:A,A" + r + "," + F + "F:F,\"Restricted\")", rr) +
-        fml("E" + r, 4, "SUMIFS(" + F + "D:D," + F + "A:A,A" + r + "," + F + "F:F,\"Unrestricted\")", uu) +
+        fml("D" + r, 4, "SUMIFS(" + F + C.hrs + ":" + C.hrs + "," + F + "A:A,A" + r + "," + F + C.type + ":" + C.type + ",\"Restricted\")", rr) +
+        fml("E" + r, 4, "SUMIFS(" + F + C.hrs + ":" + C.hrs + "," + F + "A:A,A" + r + "," + F + C.type + ":" + C.type + ",\"Unrestricted\")", uu) +
         fml("F" + r, 4, "D" + r + "+E" + r, tt) +
         fml("G" + r, 3, "IF(F" + r + "=0,0,ROUND(E" + r + "/F" + r + "*100,1))", tt ? Math.round(uu / tt * 1000) / 10 : 0) +
         str("H" + r, 3, d.acts.join(", ")) + "</row>";
@@ -1014,14 +1026,14 @@ async function buildRipleyXlsm(JSZip, entries, templateB64, opts) {
   if (opts.splitTabs !== false) {
     const tab = function (type) {
       const list = sorted.filter(function (e) { return e.type === type; });
-      let x = '<row r="1" spans="1:7"' + R + ">" + str("A1", 1, "Date") + str("B1", 13, "Start") + str("C1", 13, "End") + str("D1", 1, "Hours") + str("E1", 1, "Activity") + str("F1", 1, "Type") + str("G1", 1, "Summary") + "</row>";
+      let x = '<row r="1" spans="1:' + (C.n - 1) + '"' + R + ">" + str("A1", 1, "Date") + timeHead(1) + str(C.hrs + "1", 1, "Hours") + str(C.act + "1", 1, "Activity") + str(C.type + "1", 1, "Type") + str(C.sum + "1", 1, "Summary") + "</row>";
       list.forEach(function (e, i) {
         const r = i + 2;
-        x += '<row r="' + r + '" spans="1:7"' + R + ">" + num("A" + r, 2, serial(e.date)) + str("B" + r, 15, e.start) + str("C" + r, 15, e.end) + num("D" + r, 4, hrs(e)) + str("E" + r, 3, e.activity) + str("F" + r, 3, e.type) + str("G" + r, 3, e.summary) + "</row>";
+        x += '<row r="' + r + '" spans="1:' + (C.n - 1) + '"' + R + ">" + num("A" + r, 2, serial(e.date)) + timeCells(r, e) + num(C.hrs + r, 4, hrs(e)) + str(C.act + r, 3, e.activity) + str(C.type + r, 3, e.type) + str(C.sum + r, 3, e.summary) + "</row>";
       });
       const n = list.length + 2, tot = r2(list.reduce(function (s, e) { return s + hrs(e); }, 0));
-      x += '<row r="' + n + '" spans="1:7"' + R + ">" + str("A" + n, 1, "Total") + empty("B" + n, 1) + empty("C" + n, 1) + fml("D" + n, 1, "SUM(D2:D" + (n - 1) + ")", tot) + empty("E" + n, 1) + empty("F" + n, 1) + empty("G" + n, 1) + "</row>";
-      return head + '<dimension ref="A1:G' + n + '"/><sheetViews><sheetView zoomScale="85" zoomScaleNormal="85" workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultColWidth="16.5703125" defaultRowHeight="46.5" customHeight="1" x14ac:dyDescent="0.25"/><cols><col min="2" max="3" width="16.5703125" style="16"/><col min="7" max="7" width="192.42578125" customWidth="1"/></cols><sheetData>' + x + "</sheetData>" + margins;
+      x += '<row r="' + n + '" spans="1:' + (C.n - 1) + '"' + R + ">" + str("A" + n, 1, "Total") + fml(C.hrs + n, 1, "SUM(" + C.hrs + "2:" + C.hrs + (n - 1) + ")", tot) + "</row>";
+      return head + '<dimension ref="A1:' + C.last + n + '"/><sheetViews><sheetView zoomScale="85" zoomScaleNormal="85" workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultColWidth="16.5703125" defaultRowHeight="46.5" customHeight="1" x14ac:dyDescent="0.25"/>' + colsXml + '<sheetData>' + x + "</sheetData>" + margins;
     };
     zip.file("xl/worksheets/sheet6.xml", tab("Restricted"));
     zip.file("xl/worksheets/sheet7.xml", tab("Unrestricted"));
@@ -1073,12 +1085,17 @@ async function parseRipleyWorkbook(ExcelJS, buffer) {
     return null;
   }
   const out = []; let skipped = 0;
+  // Split-time layout (hour, minutes, AM/PM columns) is detected from the header
+  const split = /hour/i.test(String(cellVal(ws.getRow(1).getCell(2)) || ""));
+  const joinT = function (h, mm, ap) { if (h === null || h === undefined || h === "") return null; return toTime(String(h).trim() + ":" + String(mm === null || mm === undefined || mm === "" ? 0 : mm).trim().padStart(2, "0") + " " + String(ap || "AM").trim()); };
   ws.eachRow(function (row, n) {
     if (n === 1) return;
-    const date = toDate(cellVal(row.getCell(1))), start = toTime(cellVal(row.getCell(2))), end = toTime(cellVal(row.getCell(3)));
-    const activity = String(cellVal(row.getCell(5)) || "").trim();
-    let type = String(cellVal(row.getCell(6)) || "").trim();
-    const summary = String(cellVal(row.getCell(7)) || "").trim();
+    const g = function (i) { return cellVal(row.getCell(i)); };
+    const date = toDate(g(1));
+    const start = split ? joinT(g(2), g(3), g(4)) : toTime(g(2)), end = split ? joinT(g(5), g(6), g(7)) : toTime(g(3));
+    const activity = String((split ? g(9) : g(5)) || "").trim();
+    let type = String((split ? g(10) : g(6)) || "").trim();
+    const summary = String((split ? g(11) : g(7)) || "").trim();
     if (!date || !start || !end || !activity) { if (date || activity) skipped++; return; }
     type = /^un/i.test(type) ? "Unrestricted" : "Restricted";
     out.push({ date: date, start: start, end: end, activity: activity, type: type, summary: summary });
@@ -2643,10 +2660,10 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       const base = "Ripley Fieldwork " + ds;
       let blob, name;
       if (kind === "xlsx") {
-        blob = await buildRipleyXlsm(window.JSZip, set, RIPLEY_TEMPLATE_B64, { exportedOn: fmtDateShort(todayISO()), macro: false });
+        blob = await buildRipleyXlsm(window.JSZip, set, RIPLEY_TEMPLATE_B64, { exportedOn: fmtDateShort(todayISO()), macro: false, timeParts: !!window.__TIME_PARTS__ });
         name = base + ".xlsx";
       } else {
-        const inner = await buildRipleyXlsm(window.JSZip, set, RIPLEY_TEMPLATE_B64, { exportedOn: fmtDateShort(todayISO()) });
+        const inner = await buildRipleyXlsm(window.JSZip, set, RIPLEY_TEMPLATE_B64, { exportedOn: fmtDateShort(todayISO()), timeParts: !!window.__TIME_PARTS__ });
         const outer = new window.JSZip(); outer.file(base + ".xlsm", await inner.arrayBuffer());
         blob = await outer.generateAsync({ type: "blob", compression: "DEFLATE" });
         name = base + ".zip";
@@ -2950,7 +2967,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     window.addEventListener("hashchange", setNowMode);
     setInterval(function () { if (NOW.on && !NOW.manual && !$("#dlg").open) { const d = new Date().getDay(); const i = (d === 0 || d === 6) ? null : pickNowIndex(nowSchedule()); if (i !== NOW.idx) renderNow(); } }, 60000);
     ["today", "log", "export", "settings"].forEach(function (t) { $("#tab-" + t).addEventListener("click", function () { S.tab = t; render(); window.scrollTo(0, 0); }); });
-    $("#dlg").addEventListener("click", function (ev) { if (ev.target === this) this.close(); });
+    // Tapping outside an open box no longer closes it, so unsaved changes aren't lost. Use Cancel or \u2715 to close.
     render();
     renderStatus();
     connectCloud();

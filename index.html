@@ -261,6 +261,9 @@ textarea{resize:vertical;line-height:1.45}
 .dlg-actions .form-err{flex-basis:100%;margin:0 0 2px}
 .regen-alert{display:block;flex-basis:100%;background:var(--r-bg);color:var(--ink);border-left:4px solid var(--r);border-radius:8px;padding:8px 10px;font-size:.9375rem}
 .more-dl{margin-top:10px}
+.add-skill-wrap{margin:6px 0 2px}
+.add-skill{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.add-skill input{flex:1 1 180px;min-width:0}
 .more-dl summary{cursor:pointer;color:var(--brand);font-weight:700}
 .more-dl[open] .btn{margin-top:6px}
 .dlg-actions .form-err:empty{display:none}
@@ -1989,6 +1992,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         const qtr = targetRows(b.options, r.picks, null);
         body.appendChild(pills(b.options, r.picks.options, "", function () { wordIn.hidden = r.picks.options.indexOf(WOTW) < 0; qtr.sync(); }));
         if (b.options.indexOf(WOTW) >= 0) body.appendChild(wordIn);
+        body.appendChild(addSkillRow(blockDef(b.id), r.picks, function () { const y = window.scrollY; render(); window.scrollTo(0, y); }));
         if (qtr.any) body.appendChild(qtr.el);
         if (b.type === "Restricted") body.appendChild(promptRow(r.picks, null));
       }
@@ -2058,11 +2062,45 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     picks.targets = picks.targets || {};
     return h("label", { class: "target-row prompt-row" }, [h("span", { class: "target-lab", text: "Prompt levels used (optional)" }), targetPicker(PROMPT_KEY, { q: "Prompt levels used", kind: "prompts" }, picks, onInput)]);
   }
+  // ---------- user-added skills ----------
+  function isCustomOpt(o) {
+    const has = function (x) { return (x.customOpts || []).indexOf(o) >= 0; };
+    return S.settings.schedule.some(has) || S.settings.templates.some(has);
+  }
+  // Adds a skill to a block's (or template's) checklist for good, and ticks it on this entry.
+  function addSkill(owner, picks, name) {
+    name = String(name || "").replace(/\s+/g, " ").trim(); if (!owner || !name) return null;
+    owner.options = owner.options || [];
+    const hit = owner.options.find(function (o) { return o.toLowerCase() === name.toLowerCase(); });
+    const opt = hit || name;
+    if (!hit) {
+      const k = owner.options.indexOf(COACH_OPT); if (k >= 0) owner.options.splice(k, 0, opt); else owner.options.push(opt);
+      owner.customOpts = owner.customOpts || []; owner.customOpts.push(opt);
+      S.settings.custom = true; persistSettings();
+    }
+    if (picks.options.indexOf(opt) < 0) picks.options.push(opt);
+    picks.options.sort(function (a, b) { return owner.options.indexOf(a) - owner.options.indexOf(b); });
+    return { opt: opt, isNew: !hit };
+  }
+  function addSkillRow(owner, picks, after) {
+    const inp = h("input", { type: "text", placeholder: "e.g., CVC words", "aria-label": "New skill name", maxlength: "60" });
+    const form = h("div", { class: "add-skill", hidden: true }, [inp,
+      h("button", { class: "btn btn-sm", type: "button", text: "Add", onclick: function () { go(); } }),
+      h("button", { class: "btn btn-quiet btn-sm", type: "button", text: "Cancel", onclick: function () { form.hidden = true; link.hidden = false; } })]);
+    const link = h("button", { class: "link-btn", type: "button", text: "+ Add a skill to this list", onclick: function () { link.hidden = true; form.hidden = false; inp.focus(); } });
+    function go() {
+      const r = addSkill(owner, picks, inp.value); if (!r) { inp.focus(); return; }
+      toast(r.isNew ? "\u201c" + r.opt + "\u201d added to " + (owner.name || "this list") + ". It\u2019ll be here every day." : "\u201c" + r.opt + "\u201d was already on the list, so it\u2019s ticked.");
+      after(r.opt);
+    }
+    inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); go(); } });
+    return h("div", { class: "add-skill-wrap" }, [link, form]);
+  }
   function targetRows(options, picks, onInput) {
     picks.targets = picks.targets || {};
     const rows = {}, wrap = h("div", { class: "targets" });
     options.forEach(function (o) {
-      const tp = TARGET_PROMPTS[o]; if (!tp) return;
+      const tp = TARGET_PROMPTS[o] || (isCustomOpt(o) ? { q: "Which targets? (optional)", ph: "e.g., cat, map, sun" } : null); if (!tp) return;
       const inp = tp.kind ? targetPicker(o, tp, picks, onInput) : h("input", { type: "text", value: picks.targets[o] || "", placeholder: tp.ph, "aria-label": o + ": " + tp.q, oninput: function () { picks.targets[o] = this.value; if (onInput) onInput(); } });
       const row = h("label", { class: "target-row", hidden: picks.options.indexOf(o) < 0 }, [h("span", { class: "target-lab", text: o.charAt(0).toUpperCase() + o.slice(1) + ": " + tp.q }), inp]);
       rows[o] = row; wrap.appendChild(row);
@@ -2244,6 +2282,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         refresh();
       });
       g.appendChild(wordWrap);
+      const owner = def || tdef;
+      if (owner) g.appendChild(addSkillRow(owner, d.picks, function (opt) { openEditor(d); setTimeout(function () { const t = Array.prototype.find.call(document.querySelectorAll("#dlg .target-row"), function (x) { return !x.hidden && x.textContent.indexOf(opt.charAt(0).toUpperCase() + opt.slice(1)) === 0; }); if (t) { t.scrollIntoView({ block: "center" }); const i = t.querySelector("input"); if (i) i.focus(); } }, 50); }));
       if (tr.any) g.appendChild(tr.el);
       if (def && def.type === "Restricted") g.appendChild(promptRow(d.picks, refresh));
       body.appendChild(g);
@@ -2258,7 +2298,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       }
       const existing = d.picks.others.slice(); d.picks.others = []; existing.forEach(function (v) { addOther(v); });
       body.appendChild(h("div", { class: "group" }, [h("span", { class: "flabel", text: "Anything else?" }), wrap,
-        h("button", { class: "link-btn", type: "button", text: "+ Add another activity", onclick: function () { addOther("").focus(); } })]));
+        h("button", { class: "link-btn", type: "button", text: "+ Add something else (this entry only)", onclick: function () { addOther("").focus(); } })]));
     }
     if (!def) {
       body.appendChild(field("Details or example (optional)", h("input", { type: "text", value: d.picks.details || "", placeholder: "e.g., securing shelves to anchors", oninput: function () { d.picks.details = this.value; refresh(); } }), "group"));

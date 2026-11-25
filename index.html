@@ -259,6 +259,10 @@ textarea{resize:vertical;line-height:1.45}
 .regen{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .form-err{color:var(--danger);font-weight:700;margin:10px 0 0;min-height:0}
 .dlg-actions .form-err{flex-basis:100%;margin:0 0 2px}
+.regen-alert{display:block;flex-basis:100%;background:var(--r-bg);color:var(--ink);border-left:4px solid var(--r);border-radius:8px;padding:8px 10px;font-size:.9375rem}
+.more-dl{margin-top:10px}
+.more-dl summary{cursor:pointer;color:var(--brand);font-weight:700}
+.more-dl[open] .btn{margin-top:6px}
 .dlg-actions .form-err:empty{display:none}
 .form-err:empty{display:none}
 .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;padding-bottom:18px}
@@ -550,8 +554,11 @@ const DEFAULT_SCHEDULE = [
 const SCHEDULE_VERSION = 34;
 const COACH_OPT = "coached my para (unrestricted)";
 const OLD_COACH_OPT = "coached my para on implementation";
+const OBS_OPT = "observed my para (unrestricted)";
+function hasParaOpt(opts) { opts = opts || []; return opts.indexOf(COACH_OPT) >= 0 || opts.indexOf(OBS_OPT) >= 0; }
+function addParaOpts(b) { if (b.type !== "Restricted") return; b.options = b.options || []; if (b.options.indexOf(COACH_OPT) < 0) b.options.push(COACH_OPT); if (b.options.indexOf(OBS_OPT) < 0) b.options.splice(b.options.indexOf(COACH_OPT) + 1, 0, OBS_OPT); }
 const BEHAV_OPT = "responded to student behavior";
-DEFAULT_SCHEDULE.forEach(function (b) { if (b.type === "Restricted" && b.options.indexOf(COACH_OPT) < 0) b.options.push(COACH_OPT); });
+DEFAULT_SCHEDULE.forEach(addParaOpts);
 const OLD_WORKSHEET_DESC = "Created individualized instructional worksheets aligned with IEP goals to provide structured practice opportunities and support acquisition and generalization of academic skills.";
 const MY_CAT = "My templates";
 const TEMPLATE_CATEGORIES = [
@@ -773,7 +780,7 @@ DEFAULT_TEMPLATES.forEach(function (t) { t.category = TEMPLATE_CAT_BY_ID[t.id] |
 })();
 // Bring the demo in line with the current app: coaching option, receptive number ID, no personal templates.
 (function () {
-  const addCoach = function (list) { list.forEach(function (b) { if (b.type === "Restricted" && b.options.indexOf(COACH_OPT) < 0) b.options.push(COACH_OPT); }); };
+  const addCoach = function (list) { list.forEach(addParaOpts); };
   addCoach(DEFAULT_SCHEDULE);
   if (window.__ROLE_SCHEDULES__) { addCoach(window.__ROLE_SCHEDULES__.admin); window.__ROLE_SCHEDULES__.teacher = DEFAULT_SCHEDULE.slice(); }
   const mb = DEFAULT_SCHEDULE.find(function (b) { return b.id === "math"; });
@@ -1181,9 +1188,11 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       base = "Implemented individualized " + joinList(ordered) + " skill-acquisition procedures " + (def.areaEnding || "using prompting and programmed reinforcement") + ".";
     }
     let text = base.trim();
-    if ((picks.options || []).indexOf(COACH_OPT) >= 0) text = "Coached a paraprofessional on accurate implementation of individualized behavior-analytic procedures during " + (d.activity || "the activity") + ", using instructions, modeling, and performance feedback.";
+    const po0 = picks.options || [], coach = po0.indexOf(COACH_OPT) >= 0, obs = po0.indexOf(OBS_OPT) >= 0;
+    if (obs) text = "Observed a paraprofessional implementing individualized behavior-analytic procedures during " + (d.activity || "the activity") + " and collected procedural-integrity data on accurate and inaccurate implementation" + (coach ? ", then coached the paraprofessional using instructions, modeling, and performance feedback." : ".");
+    else if (coach) text = "Coached a paraprofessional on accurate implementation of individualized behavior-analytic procedures during " + (d.activity || "the activity") + ", using instructions, modeling, and performance feedback.";
     else if ((picks.options || []).indexOf(OLD_COACH_OPT) >= 0) text = text.replace(/\.\s*$/, "") + ", while coaching a paraprofessional on accurate implementation of the procedures.";
-    const details = (picks.options || []).filter(function (o) { return o !== WOTW && o !== COACH_OPT && o !== OLD_COACH_OPT; }).map(function (o) {
+    const details = (picks.options || []).filter(function (o) { return o !== WOTW && o !== COACH_OPT && o !== OLD_COACH_OPT && o !== OBS_OPT; }).map(function (o) {
       const t = picks.targets && picks.targets[o] ? String(picks.targets[o]).trim() : "";
       return t ? o + ": " + t : o;
     });
@@ -1219,6 +1228,10 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       if (oc.tco.indexOf("H.6") < 0) oc.tco.push("H.6"); if (oc.ethics.indexOf("2.10") < 0) oc.ethics.push("2.10");
       if (t.indexOf("H.6") < 0) t.push("H.6"); if (e.indexOf("2.10") < 0) e.push("2.10");
     }
+    if (po.indexOf(OBS_OPT) >= 0) {
+      ["H.6", "C.3"].forEach(function (c) { if (oc.tco.indexOf(c) < 0) oc.tco.push(c); if (t.indexOf(c) < 0) t.push(c); });
+      ["2.10", "2.17"].forEach(function (c) { if (oc.ethics.indexOf(c) < 0) oc.ethics.push(c); if (e.indexOf(c) < 0) e.push(c); });
+    }
     return { tco: t, ethics: e, added: oc };
   }
   function splitCodes(summary) {
@@ -1231,7 +1244,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
 
   // ---------- state & storage ----------
   const LS_DAYS = "feb-demo.days.v1", LS_SET = "feb-demo.settings.v1";
-  function freshSettings() { return { v: SCHEDULE_VERSION, custom: false, schedule: clone(DEFAULT_SCHEDULE), templates: clone(DEFAULT_TEMPLATES) }; }
+  function freshSettings() { return { v: SCHEDULE_VERSION, custom: false, obsOpt: true, schedule: clone(DEFAULT_SCHEDULE), templates: clone(DEFAULT_TEMPLATES) }; }
   function adoptSettings(s) {
     if (!s || !s.schedule) return null;
     if ((!s.v || s.v < SCHEDULE_VERSION) && !s.custom) return freshSettings();
@@ -1345,7 +1358,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     s.templates.forEach(function (t) { t.options = t.options || []; if (!t.category) t.category = TEMPLATE_CAT_BY_ID[t.id] || MY_CAT; });
     s.v = SCHEDULE_VERSION;
     s.schedule.forEach(function (b) { b.usual = b.usual || { areas: [], options: [], others: [], word: "" }; b.optional = !!b.optional; });
-    return { v: s.v || SCHEDULE_VERSION, custom: !!s.custom, rolePicked: s.rolePicked || "", schedule: s.schedule, templates: s.templates || [], changes: s.changes || {} };
+    if (!s.obsOpt) s.schedule.forEach(addParaOpts);
+    return { v: s.v || SCHEDULE_VERSION, custom: !!s.custom, rolePicked: s.rolePicked || "", obsOpt: true, schedule: s.schedule, templates: s.templates || [], changes: s.changes || {} };
   }
   const S = {
     days: {},             // date -> entries[]
@@ -2076,7 +2090,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       const n = e ? clone(e) : newFromBlock(b);
       if (e && b.trimmed && (e.start !== b.start || e.end !== b.end) && !e.exported) { n.start = b.start; n.end = b.end; }
       n.date = Q.date; n.picks = r.picks; if (r.tco) { n.tco = r.tco.slice(); n.ethics = r.ethics.slice(); }
-      if (b.type === "Restricted") n.type = r.picks.options.indexOf(COACH_OPT) >= 0 ? "Unrestricted" : "Restricted";
+      if (b.type === "Restricted") n.type = hasParaOpt(r.picks.options) ? "Unrestricted" : "Restricted";
       if (!n.summaryEdited) n.summary = buildSummary(n, b);
       if (e && e.exported && n.summary !== e.summary) n.exported = false;
       upsertEntry(n); rememberWord(b.id, r.picks); saved++;
@@ -2172,18 +2186,31 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
 
     const sumBox = h("textarea", { class: "summary", rows: "6", "aria-label": "Ripley summary" });
     const regen = h("button", { class: "btn btn-quiet btn-sm", type: "button", text: "Rebuild from selections", onclick: function () { d.summaryEdited = false; refresh(); } });
-    const regenNote = h("span", { class: "muted small", text: "You edited the summary, so selections no longer change it." });
+    const regenNote = h("span", { class: "muted small" });
+    let editBase = "";
     const hoursOut = h("output", { class: "hours-out" });
     const err = h("p", { class: "form-err", role: "alert" });
     function refresh() {
       if (odef && !def) odef.description = d.base;
-      if (!d.summaryEdited) sumBox.value = buildSummary(d, odef);
+      const auto = buildSummary(d, odef);
+      if (!d.summaryEdited) sumBox.value = auto;
+      else {
+        // Codes always follow the chips, even after typing in the summary.
+        const tail = auto.slice(splitCodes(auto).base.length).trim(), mine = splitCodes(sumBox.value).base;
+        const next = (mine + (tail ? " " + tail : "")).trim();
+        if (next !== sumBox.value.trim()) { sumBox.value = next; d.summary = next; }
+      }
+      const stale = d.summaryEdited && splitCodes(auto).base !== editBase;
       regen.hidden = !d.summaryEdited; regenNote.hidden = !d.summaryEdited;
+      regen.textContent = stale ? "Update summary" : "Rebuild from selections";
+      regen.className = "btn btn-sm " + (stale ? "btn-primary" : "btn-quiet");
+      regenNote.className = stale ? "regen-alert" : "muted small";
+      regenNote.textContent = stale ? "Your checklist changes aren\u2019t in the summary yet. Update summary adds them, but replaces what you typed." : "You typed in the summary. Code changes still update it; checklist changes wait for Rebuild.";
       const hh = d.start && d.end ? (mins(d.end) - mins(d.start)) / 60 : 0;
       hoursOut.textContent = hh > 0 ? fmtH(hh) + " hours" : "";
       renderChips();
     }
-    sumBox.addEventListener("input", function () { d.summaryEdited = true; d.summary = sumBox.value; regen.hidden = false; regenNote.hidden = false; });
+    sumBox.addEventListener("input", function () { if (!d.summaryEdited) editBase = splitCodes(buildSummary(d, odef)).base; d.summaryEdited = true; d.summary = sumBox.value; refresh(); });
 
     // basics
     const typeSeg = h("div", { class: "seg", role: "radiogroup", "aria-label": "Type" });
@@ -2213,7 +2240,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       const tr = targetRows(odef.options, d.picks, refresh);
       const g = checkGroup("What specifically did you do?", odef.options, d.picks.options, function () {
         wordWrap.hidden = d.picks.options.indexOf(WOTW) < 0; tr.sync();
-        if (def && def.type === "Restricted") { d.type = d.picks.options.indexOf(COACH_OPT) >= 0 ? "Unrestricted" : "Restricted"; const r = body.querySelector("#type-" + d.type); if (r) r.checked = true; }
+        if (def && def.type === "Restricted") { d.type = hasParaOpt(d.picks.options) ? "Unrestricted" : "Restricted"; const r = body.querySelector("#type-" + d.type); if (r) r.checked = true; }
         refresh();
       });
       g.appendChild(wordWrap);
@@ -2264,7 +2291,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     ]));
 
     // summary
-    body.appendChild(h("div", { class: "group" }, [h("label", { class: "flabel", text: "Summary for Ripley" }), sumBox, h("div", { class: "regen" }, [regen, regenNote])]));
+    if (d.summaryEdited) editBase = splitCodes(buildSummary(d, odef)).base;
+    body.appendChild(h("div", { class: "group" }, [h("label", { class: "flabel", text: "Summary for Ripley" }), sumBox, h("div", { class: "regen" }, [regenNote, regen])]));
     let makeUsual = false, saveTpl = false, tplCat = MY_CAT;
     const existingTpl = function () { const n = (d.activity || "").trim().toLowerCase(); return S.settings.templates.find(function (t) { return t.name.trim().toLowerCase() === n; }); };
     if (!def) {
@@ -2513,7 +2541,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       }
       list.forEach(function (e) {
         const def = e.blockId ? blockDef(e.blockId) : null;
-        const coached = ((e.picks && e.picks.options) || []).indexOf(COACH_OPT) >= 0;
+        const coached = hasParaOpt(e.picks && e.picks.options);
         if (def && def.type !== e.type && !coached) res.type.push({ d: d, text: e.activity + " (" + fmtTime(e.start) + ") is " + e.type.toLowerCase() + ", but the block is " + def.type.toLowerCase() });
         const badT = (e.tco || []).filter(function (c) { return ETH_RX.test(c); }), badE = (e.ethics || []).filter(function (c) { return TCO_RX.test(c); });
         const sumBad = /TCOs:\s*\d\.\d{2}/.test(e.summary || "") || /Ethics:\s*[A-I]\.\d/.test(e.summary || "");
@@ -2761,7 +2789,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     let tot = 0, unr = 0; set.forEach(function (e) { const x = hoursOf(e); tot += x; if (e.type === "Unrestricted") unr += x; });
     const card = h("section", { class: "panel" }, [
       h("h2", { text: "Download for Ripley" }),
-      h("p", { class: "muted", text: "Creates an .xlsm laid out exactly like your Ripley sheet, with times written as text (07:30, 13:45), your copy-turns-green macro, and the Source Audit, Summary, and References tabs. Daily Log, Restricted, and Unrestricted tabs are added at the end." }),
+      h("p", { class: "muted", text: "Makes a spreadsheet laid out like your Ripley sheet, ready to copy into Ripley. Choose which entries to include." }),
       seg,
       exScope === "range" ? h("div", { class: "grid2 range" }, [
         field("From", h("input", { type: "date", value: exFrom, onchange: function () { exFrom = this.value; renderExport(); } })),
@@ -2778,11 +2806,12 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         return n ? h("p", { class: "clash-inline", text: "\u26A0 " + n + (n === 1 ? " time clash" : " time clashes") + " in these days. Check the calendar before sending to Ripley." }) : null; })(),
       h("label", { class: "check-line" }, [h("input", { type: "checkbox", checked: exMark, onchange: function () { exMark = this.checked; } }), h("span", { text: "Mark these as exported after download" })]),
       h("div", { class: "ex-btns" }, [
-        h("button", { class: "btn btn-primary", type: "button", disabled: !set.length, text: "Download with macro (.xlsm in a .zip)", onclick: function () { doExport(set, this, "zip"); } }),
-        h("button", { class: "btn btn-quiet", type: "button", disabled: !set.length, text: "Download without macro (.xlsx)", onclick: function () { doExport(set, this, "xlsx"); } })
+        h("button", { class: "btn btn-primary", type: "button", disabled: !set.length, text: "Download spreadsheet", onclick: function () { doExport(set, this, "xlsx"); } })
       ]),
-      h("p", { class: "muted small", text: "The .xlsm can\u2019t be downloaded on its own here, so it comes inside a .zip. Open the .zip and the .xlsm is inside, macro included. The .xlsx is identical but without the copy-turns-green macro." }),
-      h("p", { class: "muted small", text: "Every download also works as a backup of everything in the app, so keep your downloads." })
+      h("p", { class: "muted small", text: "Opens in Excel. Copy from it into Ripley. It also works as a backup of everything in the app, so keep your downloads." }),
+      h("details", { class: "more-dl" }, [h("summary", { text: "More download options" }),
+        h("p", { class: "muted small", text: "The macro version turns rows green as you copy them. It comes inside a .zip because the .xlsm can\u2019t download on its own here." }),
+        h("button", { class: "btn btn-quiet btn-sm", type: "button", disabled: !set.length, text: "Download with copy-turns-green macro (.zip)", onclick: function () { doExport(set, this, "zip"); } })])
     ]);
     v.appendChild(card);
 
@@ -2976,6 +3005,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
 
     const schedList = h("div", { class: "set-list" });
     function drawSched() {
+      if (schedList.childElementCount) queueSave();
       schedList.replaceChildren();
       sched.forEach(function (b, i) {
         const nameSpan = h("span", { text: b.name });
@@ -2996,6 +3026,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
           h("div", { class: "set-actions" }, [
             h("button", { class: "btn btn-quiet btn-sm", type: "button", text: "Move up", disabled: i === 0, onclick: function () { sched.splice(i - 1, 0, sched.splice(i, 1)[0]); drawSched(); } }),
             h("button", { class: "btn btn-quiet btn-sm", type: "button", text: "Move down", disabled: i === sched.length - 1, onclick: function () { sched.splice(i + 1, 0, sched.splice(i, 1)[0]); drawSched(); } }),
+            h("button", { class: "btn btn-quiet btn-sm", type: "button", text: "Duplicate", onclick: function () { const c = clone(b); c.id = "b_" + uid(); delete c.usual; c.name = b.name + " (copy)"; sched.splice(i + 1, 0, c); drawSched(); const el = schedList.children[i + 1]; if (el) { el.open = true; const nm = el.querySelector("input[type=text]"); if (nm) { nm.focus(); nm.select(); } } toast("Duplicated. Set the new block\u2019s times."); } }),
             h("button", { class: "btn btn-danger btn-sm", type: "button", text: "Remove block", onclick: function () { sched.splice(i, 1); drawSched(); } })
           ])
         ]));
@@ -3004,6 +3035,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     drawSched();
     const tplList = h("div", { class: "set-list" });
     function drawTpl() {
+      if (tplList.childElementCount) queueSave();
       tplList.replaceChildren();
       tpls.forEach(function (t, i) {
         const nameSpan = h("span", { text: t.name });
@@ -3022,11 +3054,20 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       });
     }
     drawTpl();
-    function save() {
-      sched.forEach(function (b) { if (!b.id) b.id = "b_" + uid(); b.name = b.name.trim() || "Untitled block"; });
-      tpls.forEach(function (t) { t.name = t.name.trim() || "Untitled"; });
-      S.settings = { v: SCHEDULE_VERSION, custom: true, rolePicked: S.settings.rolePicked || "", schedule: sched, templates: tpls, changes: S.settings.changes || {} }; persistSettings(); render(); toast("Settings saved.");
+    // Every change saves itself a moment later (and right away if you switch tabs).
+    let saveTimer = null;
+    function saveNowQuiet() {
+      clearTimeout(saveTimer); saveTimer = null; pendingSettingsSave = null;
+      const sc = clone(sched).filter(function (b) { return b.start && b.end; });
+      sc.forEach(function (b) { if (!b.id) b.id = "b_" + uid(); b.name = (b.name || "").trim() || "Untitled block"; });
+      sc.sort(function (x, y) { return x.start.localeCompare(y.start); });
+      const tp = clone(tpls); tp.forEach(function (t) { t.name = (t.name || "").trim() || "Untitled"; });
+      S.settings = { v: SCHEDULE_VERSION, custom: true, rolePicked: S.settings.rolePicked || "", obsOpt: true, schedule: sc, templates: tp, changes: S.settings.changes || {} };
+      persistSettings(); renderTotals();
+      dirty.textContent = "All changes saved.";
     }
+    function queueSave() { clearTimeout(saveTimer); dirty.textContent = "Saving\u2026"; pendingSettingsSave = saveNowQuiet; saveTimer = setTimeout(saveNowQuiet, 600); }
+    v.oninput = queueSave; v.onchange = queueSave;
     v.appendChild(h("section", { class: "panel" }, [
       h("h2", { text: "Daily schedule" }),
       h("p", { class: "muted", text: "These are the blocks on the Today tab. Changes apply to new entries, not ones you already saved." }),
@@ -3034,7 +3075,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       h("div", { class: "set-actions" }, [
         h("button", { class: "btn btn-quiet", type: "button", text: "Add block", onclick: function () { sched.push({ id: "b_" + uid(), name: "New block", start: "08:00", end: "08:15", type: "Restricted", optional: false, description: "", areas: [], areaEnding: "", options: [], tco: ["G.7", "G.8"], ethics: ["2.14", "3.01"], usual: { areas: [], options: [], others: [], word: "" } }); drawSched(); schedList.lastChild.open = true; } }),
         (STANDALONE && window.__ROLE_SCHEDULES__) ? h("button", { class: "btn btn-quiet", type: "button", text: "Choose a different starter schedule", onclick: function () { S.forcePick = true; S.tab = "today"; render(); window.scrollTo(0, 0); } }) : null,
-        h("button", { class: "btn btn-quiet", type: "button", text: "Start with an empty schedule", onclick: function () { sched.splice(0, sched.length); drawSched(); dirty.textContent = "Schedule cleared. Add your own blocks, then save."; } }),
+        h("button", { class: "btn btn-quiet", type: "button", text: "Start with an empty schedule", onclick: function () { sched.splice(0, sched.length); drawSched(); dirty.textContent = "Schedule cleared. Add your own blocks."; } }),
         h("button", { class: "btn btn-quiet", type: "button", text: "Reset to original schedule", onclick: function () { sched.splice(0, sched.length); clone(DEFAULT_SCHEDULE).forEach(function (b) { sched.push(b); }); drawSched(); dirty.textContent = "Reset. Save to keep it."; } })
       ])
     ]));
@@ -3046,7 +3087,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       tplList,
       h("div", { class: "set-actions" }, [h("button", { class: "btn btn-quiet", type: "button", text: "Add template", onclick: function () { tpls.push({ id: "t_" + uid(), name: "New template", type: "Unrestricted", category: MY_CAT, description: "", options: [], tco: [], ethics: [] }); drawTpl(); tplList.lastChild.open = true; } })])
     ]));
-    v.appendChild(h("div", { class: "save-bar" }, [h("button", { class: "btn btn-primary", type: "button", text: "Save settings", onclick: save }), dirty]));
+    dirty.textContent = "Changes save automatically.";
+    v.appendChild(h("div", { class: "save-bar" }, [dirty]));
   }
 
   // ---------- NOW VIEW (fast mobile documentation, opened with #now) ----------
@@ -3083,7 +3125,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     n.date = date; n.start = n.start || b.start; n.end = n.end || b.end;
     st.picks.others = st.other.split(";").map(function (s) { return s.trim(); }).filter(Boolean);
     n.picks = clone(st.picks); n.tco = st.tco.slice(); n.ethics = st.ethics.slice();
-    if (b.type === "Restricted") n.type = n.picks.options.indexOf(COACH_OPT) >= 0 ? "Unrestricted" : "Restricted";
+    if (b.type === "Restricted") n.type = hasParaOpt(n.picks.options) ? "Unrestricted" : "Restricted";
     if (!n.summaryEdited) n.summary = buildSummary(n, blockDef(b.id));
     if (e && e.exported && n.summary !== e.summary) n.exported = false;
     upsertEntry(n); rememberWord(b.id, n.picks);
@@ -3172,7 +3214,9 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   }
 
   // ---------- routing ----------
+  let pendingSettingsSave = null;
   function render() {
+    if (pendingSettingsSave) pendingSettingsSave();
     renderTotals();
     ["today", "log", "export", "settings"].forEach(function (t) {
       $("#view-" + t).hidden = S.tab !== t;
@@ -3204,8 +3248,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     const ul = h("ul", { class: "entry-list sess-list" }); set.slice().reverse().forEach(function (e) { ul.appendChild(entryRow(e, true)); }); body.appendChild(ul);
     body.appendChild(h("label", { class: "check-line" }, [h("input", { type: "checkbox", checked: exMark, onchange: function () { exMark = this.checked; } }), h("span", { text: "Mark these as exported after download" })]));
     body.appendChild(h("div", { class: "dlg-actions" }, [
-      h("button", { class: "btn btn-quiet", type: "button", text: "Without macro (.xlsx)", onclick: function () { doExport(set, this, "xlsx"); } }),
-      h("button", { class: "btn btn-primary", type: "button", text: "With macro (.xlsm in .zip)", onclick: function () { doExport(set, this, "zip"); } })
+      h("button", { class: "btn btn-quiet", type: "button", text: "With macro (.zip)", onclick: function () { doExport(set, this, "zip"); } }),
+      h("button", { class: "btn btn-primary", type: "button", text: "Download spreadsheet", onclick: function () { doExport(set, this, "xlsx"); } })
     ]));
     showDialog(body);
   }

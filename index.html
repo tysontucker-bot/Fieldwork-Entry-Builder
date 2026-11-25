@@ -1420,6 +1420,28 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     }
     return pairs;
   }
+  // Trims or splits logged schedule blocks that a one-off entry overlaps, so the one-off replaces that time.
+  function makeRoom(o, hits) {
+    const os = mins(o.start), oe = mins(o.end), sched = daySchedule(o.date);
+    const before = hits.map(clone), made = [], notes = [];
+    hits.forEach(function (x) {
+      const xs = mins(x.start), xe = mins(x.end), base = baseIdOf(x.blockId), parts = [];
+      if (xs < os) parts.push([xs, Math.min(os, xe)]);
+      if (xe > oe) parts.push([Math.max(oe, xs), xe]);
+      removeEntry(x);
+      parts.forEach(function (pr, k) {
+        const piece = sched.find(function (b) { return baseIdOf(b.id) === base && mins(b.start) < pr[1] && pr[0] < mins(b.end); });
+        const n = clone(x); if (k > 0) n.id = uid();
+        n.start = hmOf(pr[0]); n.end = hmOf(pr[1]); n.blockId = piece ? piece.id : x.blockId + "~" + (k + 1);
+        upsertEntry(n, true); made.push(n.id);
+      });
+      notes.push(parts.length ? x.activity + " now " + parts.map(function (pr) { return fmtTime(hmOf(pr[0])) + "\u2013" + fmtTime(hmOf(pr[1])); }).join(" and ") : x.activity + " removed");
+    });
+    return { text: notes.join("; "), undo: function () {
+      const date = o.date; (S.days[date] || []).slice().forEach(function (e) { if (made.indexOf(e.id) >= 0) removeEntry(e); });
+      before.forEach(function (e) { upsertEntry(e, true); });
+    } };
+  }
   function clashIds(date) { const ids = {}; dayClashes(date).forEach(function (p) { ids[p[0].id] = 1; ids[p[1].id] = 1; }); return ids; }
   function clashBox(date) {
     const pairs = dayClashes(date); if (!pairs.length) return null;
@@ -1433,8 +1455,13 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   // The day's schedule after any schedule changes: blocks are trimmed or split around each change window.
   function hmOf(n) { return pad(Math.floor(n / 60)) + ":" + pad(n % 60); }
   function dayChanges(date) { return (((S.settings.changes || {})[date]) || []).filter(function (c) { return c.start && c.end && mins(c.end) > mins(c.start); }); }
+  // One-off entries (other work, observations, imported rows) take over their time slot in the day's schedule.
+  function oneOffWindows(date) {
+    return (S.days[date] || []).filter(function (e) { return (!e.blockId || !blockDef(e.blockId)) && e.start && e.end && mins(e.end) > mins(e.start); })
+      .map(function (e) { return { start: e.start, end: e.end }; });
+  }
   function daySchedule(date) {
-    const ch = dayChanges(date); if (!ch.length) return S.settings.schedule;
+    const ch = dayChanges(date).concat(oneOffWindows(date)); if (!ch.length) return S.settings.schedule;
     let list = S.settings.schedule.map(function (b) { return [b, mins(b.start), mins(b.end), b.id]; });
     ch.forEach(function (c) {
       const cs = mins(c.start), ce = mins(c.end), out = [];
@@ -1615,7 +1642,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     }
     if (STANDALONE && !allEntries().length && !S.hideSample) {
       v.appendChild(h("div", { class: "sample-note" }, [
-        h("p", {}, [h("strong", { text: "New here? " }), "Load a sample week to see how logging, the calendar, and the spreadsheet download work. You can clear it anytime from Export > Backup."]),
+        h("p", {}, [h("strong", { text: "New here? " }), "Load a sample week to see how logging, the calendar, and the spreadsheet download work. You can remove it anytime from the Entries tab."]),
         h("div", { class: "day-actions" }, [
           h("button", { class: "btn", type: "button", text: "Load a sample week", onclick: loadSampleWeek }),
           h("button", { class: "btn btn-quiet", type: "button", text: "No thanks", onclick: function () { S.hideSample = true; render(); } })
@@ -1787,18 +1814,47 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     while (days < 5) {
       const dow = d.getDay(), iso = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
       if (dow !== 0 && dow !== 6) {
-        S.settings.schedule.forEach(function (b, bi) { if (b.optional && (bi + days) % 3 === 0) return; const n = newFromBlock(b); n.date = iso; n.summary = buildSummary(n, b); upsertEntry(n); });
+        S.settings.schedule.forEach(function (b, bi) { if (b.optional && (bi + days) % 3 === 0) return; const n = newFromBlock(b); n.date = iso; n.sample = true; n.summary = buildSummary(n, b); upsertEntry(n); });
         days++;
       } else if (dow === 6) {
         [["t_token", "10:00", "11:00"], ["t_graphs", "11:00", "12:00"]].forEach(function (x) {
           const t = templateDef(x[0]); if (!t) return;
           const n = newFromTemplate(t, { date: iso, start: x[1] }); n.end = x[2]; n.picks.options = (t.options || []).slice(0, 2);
-          n.summary = buildSummary(n, { description: n.base, areas: [], options: t.options }); upsertEntry(n);
+          n.sample = true; n.summary = buildSummary(n, { description: n.base, areas: [], options: t.options }); upsertEntry(n);
         });
       }
       d.setDate(d.getDate() - 1);
     }
     render(); toast("Sample week loaded. See the calendar on the Entries tab.");
+  }
+  // Sample-week entries: tagged ones, plus untagged ones from before tagging (a burst of 20+ entries over 4+ dates saved within a second or two).
+  function sampleEntries() {
+    const all = allEntries(), out = all.filter(function (e) { return e.sample; });
+    const timed = all.filter(function (e) { return !e.sample && e.updatedAt; }).sort(function (a, b) { return a.updatedAt - b.updatedAt; });
+    let run = [];
+    const flush = function () {
+      const ds = {}; run.forEach(function (e) { ds[e.date] = 1; });
+      if (run.length >= 20 && Object.keys(ds).length >= 4 && run.every(function (e) { return (e.blockId && blockDef(e.blockId)) || e.templateId === "t_token" || e.templateId === "t_graphs"; })) run.forEach(function (e) { out.push(e); });
+      run = [];
+    };
+    timed.forEach(function (e) { if (run.length && e.updatedAt - run[run.length - 1].updatedAt > 1500) flush(); run.push(e); });
+    flush();
+    return out;
+  }
+  function sampleNote() {
+    const list = sampleEntries(); if (!list.length) return null;
+    const dates = list.map(function (e) { return e.date; }).sort();
+    const hrs = list.reduce(function (a, e) { return a + hoursOf(e); }, 0);
+    let armed = false;
+    const btn = h("button", { class: "btn btn-sm", type: "button", text: "Remove sample entries", onclick: function () {
+      if (!armed) { armed = true; btn.textContent = "Tap again to remove " + list.length + " sample entries"; return; }
+      const gone = list.map(clone); list.forEach(removeEntry); render();
+      toast("Removed " + gone.length + " sample entries.", { label: "Undo", run: function () { gone.forEach(function (e) { upsertEntry(e, true); }); render(); } });
+    } });
+    return h("div", { class: "sample-note" }, [
+      h("p", {}, [h("strong", { text: "Sample entries are mixed in with yours. " }), list.length + " entries (" + fmtH(hrs) + " h) from " + fmtDateShort(dates[0]) + " to " + fmtDateShort(dates[dates.length - 1]) + " came from the sample week and count toward your totals."]),
+      h("div", { class: "day-actions" }, [btn])
+    ]);
   }
   function logAllRemaining(blocks) {
     const made = blocks.map(function (b) { const n = newFromBlock(b); n.summary = buildSummary(n, b); return n; });
@@ -1982,6 +2038,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       r.picks.others = r.other.split(";").map(function (s) { return s.trim(); }).filter(Boolean);
       if (!r.include) { if (e) { removeEntry(e); removed++; } return; }
       const n = e ? clone(e) : newFromBlock(b);
+      if (e && b.trimmed && (e.start !== b.start || e.end !== b.end) && !e.exported) { n.start = b.start; n.end = b.end; }
       n.date = Q.date; n.picks = r.picks; if (r.tco) { n.tco = r.tco.slice(); n.ethics = r.ethics.slice(); }
       if (b.type === "Restricted") n.type = r.picks.options.indexOf(COACH_OPT) >= 0 ? "Unrestricted" : "Restricted";
       if (!n.summaryEdited) n.summary = buildSummary(n, b);
@@ -2212,10 +2269,12 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         if (!d.start || !d.end) return (err.textContent = "Add a start and end time.");
         if (mins(d.end) <= mins(d.start)) return (err.textContent = "End time needs to be after the start time.");
         if (!sumBox.value.trim()) return (err.textContent = "The summary is empty.");
-        const cl = clashesFor(d);
+        const cl0 = clashesFor(d);
+        const roomFor = def ? [] : cl0.filter(function (x) { return x.blockId && blockDef(x.blockId) && !x.exported; });
+        const cl = cl0.filter(function (x) { return roomFor.indexOf(x) < 0; });
         if (cl.length && !clashOk) {
           clashOk = true;
-          err.textContent = "This overlaps " + cl.map(function (x) { return x.activity + " (" + fmtTime(x.start) + "\u2013" + fmtTime(x.end) + ")"; }).join(", ") + ". Change the times, or tap Save again to keep the overlap.";
+          err.textContent = "This overlaps " + cl.map(function (x) { return x.activity + " (" + fmtTime(x.start) + "\u2013" + fmtTime(x.end) + ")" + (x.exported ? ", already sent to Ripley" : ""); }).join(", ") + ". Change the times, or tap Save again to keep the overlap.";
           return;
         }
         d.summary = sumBox.value.trim(); d.activity = d.activity.trim();
@@ -2223,6 +2282,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         const prev = allEntries().find(function (x) { return x.id === d.id; });
         if (prev && prev.exported && (prev.summary !== d.summary || prev.start !== d.start || prev.end !== d.end || prev.date !== d.date || prev.type !== d.type || prev.activity !== d.activity)) d.exported = false;
         upsertEntry(d);
+        const room = roomFor.length ? makeRoom(d, roomFor) : null;
         if (def && makeUsual) { def.usual = { areas: d.picks.areas.slice(), options: d.picks.options.slice(), others: d.picks.others.slice(), word: d.picks.word || "" }; S.settings.custom = true; persistSettings(); }
         else if (def) rememberWord(def.id, d.picks);
         let msg = "Entry saved.";
@@ -2239,7 +2299,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
           d.templateId = t ? t.id : data.id; upsertEntry(d);
           S.settings.custom = true; persistSettings();
         }
-        $("#dlg").close(); render(); toast(msg);
+        $("#dlg").close(); render();
+        if (room) toast(msg + " Made room: " + room.text + ".", { label: "Undo", run: function () { room.undo(); render(); } }); else toast(msg);
         if (another) openTemplatePicker(null, { date: d.date, start: d.end });
     }
     showDialog(body); refresh();
@@ -2346,6 +2407,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       modeSeg.appendChild(h("label", { for: "lm-" + f[0], text: f[1] }));
     });
     v.appendChild(h("div", { class: "log-mode" }, [modeSeg]));
+    { const sn = sampleNote(); if (sn) v.appendChild(sn); }
     if (logMode === "cal") { renderCalendar(v); return; }
     if (logMode === "check") { renderCheck(v); return; }
     if (logMode === "day") { renderDayLog(v); return; }
@@ -2646,6 +2708,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       seg.appendChild(h("input", { type: "radio", name: "ex", id: "ex-" + f[0], checked: exScope === f[0], onchange: function () { exScope = f[0]; renderExport(); } }));
       seg.appendChild(h("label", { for: "ex-" + f[0], text: f[1] }));
     });
+    { const sn = sampleNote(); if (sn) v.appendChild(sn); }
     const set = exportSet();
     let tot = 0, unr = 0; set.forEach(function (e) { const x = hoursOf(e); tot += x; if (e.type === "Unrestricted") unr += x; });
     const card = h("section", { class: "panel" }, [

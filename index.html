@@ -5,6 +5,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FieldDay (Demo)</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48Y2xpcFBhdGggaWQ9ImMiPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iOTYiLz48L2NsaXBQYXRoPjwvZGVmcz48ZyBjbGlwLXBhdGg9InVybCgjYykiPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSIjMUY0RTc4Ii8+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjkwIiByPSIxNTAiIGZpbGw9IiNGMEMyNjUiLz48cmVjdCB5PSIyOTAiIHdpZHRoPSI1MTIiIGhlaWdodD0iMjIyIiBmaWxsPSIjMjU2QjNGIi8+PHBvbHlnb24gcG9pbnRzPSIyMzYuNSwyOTAgMjUxLjUsMjkwIC0yNjkuOCw1MTIgLTQyMC4wLDUxMiIgZmlsbD0iIzNGOEY1QyIvPjxwb2x5Z29uIHBvaW50cz0iMjQyLjUsMjkwIDI1Ny41LDI5MCAzMC43LDUxMiAtMTE5LjYsNTEyIiBmaWxsPSIjM0Y4RjVDIi8+PHBvbHlnb24gcG9pbnRzPSIyNDguNSwyOTAgMjYzLjUsMjkwIDMzMS4xLDUxMiAxODAuOSw1MTIiIGZpbGw9IiMzRjhGNUMiLz48cG9seWdvbiBwb2ludHM9IjI1NC41LDI5MCAyNjkuNSwyOTAgNjMxLjYsNTEyIDQ4MS4zLDUxMiIgZmlsbD0iIzNGOEY1QyIvPjxwb2x5Z29uIHBvaW50cz0iMjYwLjUsMjkwIDI3NS41LDI5MCA5MzIuMCw1MTIgNzgxLjgsNTEyIiBmaWxsPSIjM0Y4RjVDIi8+PHJlY3QgeT0iMjg2IiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMUI1MjMwIi8+PC9nPjwvc3ZnPg==">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="FieldDay">
+<meta name="application-name" content="FieldDay">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
@@ -39,7 +44,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .wrap{max-width:860px;margin:0 auto;padding:0 16px}
 header.top{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 .top-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0 6px}
-.top-row h1{font-size:1.125rem;margin:0;letter-spacing:-.01em}
+.top-row h1{font-size:1.125rem;margin:0;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.app-icon{width:28px;height:28px;border-radius:7px;flex:none}
 .totals{display:grid;grid-template-columns:auto auto 1fr;gap:4px 20px;align-items:end;padding:6px 0 12px}
 .tot{display:flex;flex-direction:column;line-height:1.2}
 .tot b{font-size:1.35rem;font-variant-numeric:tabular-nums}
@@ -403,7 +409,7 @@ body.has-session #toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
 <body>
 <header class="top">
   <div class="wrap">
-    <div class="top-row"><h1>FieldDay<span class="demo-chip">Demo</span></h1><span id="sync-chip" class="sync-chip wait" role="status">Connecting…</span></div>
+    <div class="top-row"><h1><img class="app-icon" alt="" width="28" height="28" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48Y2xpcFBhdGggaWQ9ImMiPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iOTYiLz48L2NsaXBQYXRoPjwvZGVmcz48ZyBjbGlwLXBhdGg9InVybCgjYykiPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSIjMUY0RTc4Ii8+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjkwIiByPSIxNTAiIGZpbGw9IiNGMEMyNjUiLz48cmVjdCB5PSIyOTAiIHdpZHRoPSI1MTIiIGhlaWdodD0iMjIyIiBmaWxsPSIjMjU2QjNGIi8+PHBvbHlnb24gcG9pbnRzPSIyMzYuNSwyOTAgMjUxLjUsMjkwIC0yNjkuOCw1MTIgLTQyMC4wLDUxMiIgZmlsbD0iIzNGOEY1QyIvPjxwb2x5Z29uIHBvaW50cz0iMjQyLjUsMjkwIDI1Ny41LDI5MCAzMC43LDUxMiAtMTE5LjYsNTEyIiBmaWxsPSIjM0Y4RjVDIi8+PHBvbHlnb24gcG9pbnRzPSIyNDguNSwyOTAgMjYzLjUsMjkwIDMzMS4xLDUxMiAxODAuOSw1MTIiIGZpbGw9IiMzRjhGNUMiLz48cG9seWdvbiBwb2ludHM9IjI1NC41LDI5MCAyNjkuNSwyOTAgNjMxLjYsNTEyIDQ4MS4zLDUxMiIgZmlsbD0iIzNGOEY1QyIvPjxwb2x5Z29uIHBvaW50cz0iMjYwLjUsMjkwIDI3NS41LDI5MCA5MzIuMCw1MTIgNzgxLjgsNTEyIiBmaWxsPSIjM0Y4RjVDIi8+PHJlY3QgeT0iMjg2IiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMUI1MjMwIi8+PC9nPjwvc3ZnPg==">FieldDay<span class="demo-chip">Demo</span></h1><span id="sync-chip" class="sync-chip wait" role="status">Connecting…</span></div>
     <p id="local-warn" class="local-warn" hidden>You’re viewing a copy that isn’t connected to your Claude account, so the hours shown may be out of date and anything you add stays in this browser. Open your published link while signed in to Claude to see your saved hours.</p>
     <div class="totals" aria-label="Fieldwork totals">
       <div class="tot"><b id="tot-all">0 h</b><span>All fieldwork</span></div>

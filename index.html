@@ -191,6 +191,14 @@ body.now-mode header.top, body.now-mode main, body.now-mode #session-bar{display
 .target-row input{border:1px solid var(--line);background:var(--sunk);border-radius:8px;padding:8px 10px;width:100%}
 .role-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .sample-note{background:var(--x-bg);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.bk-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;background:var(--r-bg);color:var(--ink);border-left:4px solid var(--r);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.bk-banner p{margin:4px 0 0;color:var(--muted);font-size:.9375rem;max-width:60ch}
+.bk-banner .bk-btns{display:flex;gap:8px;flex-wrap:wrap}
+.bk-compact{padding:10px 12px}
+.bk-status{font-weight:700;margin:0 0 10px}
+.bk-status.due{color:var(--r)}
+.restore-line{margin:14px 0 0}
+.restore-line .link-btn,.sample-note .link-btn{display:inline;padding:0}
 .sample-note p{margin:0 0 10px}
 .demo-chip{font-size:.6875rem;font-weight:700;background:var(--brand);color:var(--brand-ink);border-radius:999px;padding:2px 8px;vertical-align:middle;margin-left:6px}
 .ex-act{max-width:360px;margin:4px 0 10px}
@@ -1056,6 +1064,28 @@ async function buildRipleyXlsm(JSZip, entries, templateB64, opts) {
       .replace(/(<vt:lpstr>(?:Daily Log|References)<\/vt:lpstr>)(?![\s\S]*<vt:lpstr>(?:Daily Log|References)<\/vt:lpstr>)/, "$1<vt:lpstr>Restricted</vt:lpstr><vt:lpstr>Unrestricted</vt:lpstr>");
     zip.file("docProps/app.xml", app3);
   }
+  // Hidden "App Backup" tab: the app's full backup (entries, schedule, times, templates) so any downloaded spreadsheet can be restored.
+  if (opts.backupJson) {
+    const bj = String(opts.backupJson).replace(/[\u007f-\uffff]/g, function (c) { return "\\u" + ("000" + c.charCodeAt(0).toString(16)).slice(-4); });
+    const parts = []; for (let i = 0; i < bj.length; i += 30000) parts.push(bj.slice(i, i + 30000));
+    let bx = "";
+    parts.forEach(function (t, i) { bx += '<row r="' + (i + 1) + '">' + '<c r="A' + (i + 1) + '" t="inlineStr"><is><t xml:space="preserve">' + esc(t) + "</t></is></c>" + (i === 0 ? '<c r="B1" t="inlineStr"><is><t>Backup for the Fieldwork Entry Builder. Leave this tab as is.</t></is></c>' : "") + "</row>"; });
+    zip.file("xl/worksheets/sheet8.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="A1:B' + Math.max(1, parts.length) + '"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><sheetData>' + bx + '</sheetData><pageMargins left="0.75" right="0.75" top="1" bottom="1" header="0.5" footer="0.5"/></worksheet>');
+    let wb8 = await zip.file("xl/workbook.xml").async("string");
+    wb8 = wb8.replace("</sheets>", '<sheet name="App Backup" sheetId="8" state="hidden" r:id="rId13"/></sheets>');
+    zip.file("xl/workbook.xml", wb8);
+    let rel8 = await zip.file("xl/_rels/workbook.xml.rels").async("string");
+    rel8 = rel8.replace("</Relationships>", '<Relationship Id="rId13" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet8.xml"/></Relationships>');
+    zip.file("xl/_rels/workbook.xml.rels", rel8);
+    let ct8 = await zip.file("[Content_Types].xml").async("string");
+    ct8 = ct8.replace('<Override PartName="/xl/worksheets/sheet4.xml"', '<Override PartName="/xl/worksheets/sheet8.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet4.xml"');
+    zip.file("[Content_Types].xml", ct8);
+    let app8 = await zip.file("docProps/app.xml").async("string");
+    app8 = app8.replace(/<vt:i4>(\d+)<\/vt:i4>/, function (_, n) { return "<vt:i4>" + (+n + 1) + "</vt:i4>"; })
+      .replace(/<vt:vector size="(\d+)" baseType="lpstr">/, function (_, n) { return '<vt:vector size="' + (+n + 1) + '" baseType="lpstr">'; })
+      .replace(/(<vt:vector size="\d+" baseType="lpstr">[\s\S]*?)(<\/vt:vector>)/, "$1<vt:lpstr>App Backup</vt:lpstr>$2");
+    zip.file("docProps/app.xml", app8);
+  }
   if (opts.macro === false) {
     zip.remove("xl/vbaProject.bin");
     let ct2 = await zip.file("[Content_Types].xml").async("string");
@@ -1339,7 +1369,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   function enqueue(key, fn) { const p = (queues[key] || Promise.resolve()).then(fn, fn); queues[key] = p.catch(function () {}); return p; }
   function dayRef(date) { return S.db.doc("data/users/" + S.uid + "/d-" + date); }
   async function persistDay(date) {
-    writeLocal();
+    writeLocal(); noteChange();
     if (S.mode !== "cloud") return;
     const entries = S.days[date] || [];
     return enqueue("d-" + date, function () {
@@ -1347,7 +1377,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     });
   }
   async function persistSettings() {
-    writeLocal();
+    writeLocal(); noteChange();
     if (S.mode !== "cloud") return;
     return enqueue("settings", function () { return S.db.doc("data/users/" + S.uid + "/settings").set(S.settings).catch(onWriteError); });
   }
@@ -1578,7 +1608,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
           h("button", { class: "cat", type: "button", onclick: function () { pick("teacher"); } }, [h("span", { class: "tpl-name", text: "Classroom teacher" }), h("span", { class: "muted small", text: "A full school day of instruction blocks, mostly restricted" })]),
           h("button", { class: "cat", type: "button", onclick: function () { pick("admin"); } }, [h("span", { class: "tpl-name", text: "Administrator or campus leader" }), h("span", { class: "muted small", text: "Observations, coaching, data review, behavior support, meetings" })]),
           h("button", { class: "cat", type: "button", onclick: function () { pick("blank"); } }, [h("span", { class: "tpl-name", text: "Start blank" }), h("span", { class: "muted small", text: "Build your own schedule from scratch" })])
-        ])
+        ]),
+        h("p", { class: "muted small restore-line" }, ["Moving from another phone or computer? ", restoreButton("Restore from a backup", "link-btn")])
       ]));
       return;
     }
@@ -1588,9 +1619,11 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         h("div", { class: "day-actions" }, [
           h("button", { class: "btn", type: "button", text: "Load a sample week", onclick: loadSampleWeek }),
           h("button", { class: "btn btn-quiet", type: "button", text: "No thanks", onclick: function () { S.hideSample = true; render(); } })
-        ])
+        ]),
+        h("p", { class: "muted small", style: "margin:10px 0 0" }, ["Already have entries on another device? ", restoreButton("Restore from a backup", "link-btn")])
       ]));
     }
+    { const bb = backupBanner(false); if (bb) v.appendChild(bb); }
     Q = null;
     const entries = S.days[S.date] || [];
     const dayH = entries.reduce(function (s, e) { return s + hoursOf(e); }, 0);
@@ -1747,6 +1780,9 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     return btn;
   }
   function loadSampleWeek() {
+    bkQuiet = true; try { loadSampleWeek0(); } finally { bkQuiet = false; const b = bkGet(); if (!b.at) { b.edits = 0; bkSet(b); } render(); }
+  }
+  function loadSampleWeek0() {
     const today = new Date(); const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1); let days = 0;
     while (days < 5) {
       const dow = d.getDay(), iso = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
@@ -2634,7 +2670,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         h("button", { class: "btn btn-primary", type: "button", disabled: !set.length, text: "Download with macro (.xlsm in a .zip)", onclick: function () { doExport(set, this, "zip"); } }),
         h("button", { class: "btn btn-quiet", type: "button", disabled: !set.length, text: "Download without macro (.xlsx)", onclick: function () { doExport(set, this, "xlsx"); } })
       ]),
-      h("p", { class: "muted small", text: "The .xlsm can\u2019t be downloaded on its own here, so it comes inside a .zip. Open the .zip and the .xlsm is inside, macro included. The .xlsx is identical but without the copy-turns-green macro." })
+      h("p", { class: "muted small", text: "The .xlsm can\u2019t be downloaded on its own here, so it comes inside a .zip. Open the .zip and the .xlsm is inside, macro included. The .xlsx is identical but without the copy-turns-green macro." }),
+      h("p", { class: "muted small", text: "Every download also works as a backup of everything in the app, so keep your downloads." })
     ]);
     v.appendChild(card);
 
@@ -2650,35 +2687,21 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       importMsg
     ]));
     const restoreMsg = h("p", { class: "muted small", role: "status" });
-    const restoreIn = h("input", { type: "file", accept: ".json,application/json", class: "file", "aria-label": "Choose a backup file" });
-    restoreIn.addEventListener("change", async function () {
-      const f = restoreIn.files[0]; restoreIn.value = ""; if (!f) return;
-      try {
-        const data = JSON.parse(await f.text());
-        if (!data || typeof data.days !== "object") throw new Error("bad");
-        const have = {}; allEntries().forEach(function (e) { have[e.id] = 1; });
-        let added = 0; const touched = {};
-        Object.keys(data.days).forEach(function (d) { (data.days[d] || []).forEach(function (e) { if (!e || !e.id || have[e.id] || !e.date) return; (S.days[e.date] || (S.days[e.date] = [])).push(e); touched[e.date] = 1; added++; }); });
-        Object.keys(touched).forEach(function (d) { S.days[d].sort(function (a, b) { return a.start.localeCompare(b.start); }); persistDay(d); });
-        if (data.settings && data.settings.schedule) { const a = adoptSettings(data.settings); if (a) { S.settings = a; persistSettings(); } }
-        restoreMsg.textContent = "Restored " + added + (added === 1 ? " entry" : " entries") + (data.settings ? " plus your schedule and templates" : "") + ". Entries already here were skipped.";
-        render();
-      } catch (e) { restoreMsg.textContent = "That file isn\u2019t a backup from this app."; }
-    });
-    v.appendChild(h("section", { class: "panel" }, [
+    const bk = bkGet();
+    const bkLine = bk.at ? "Last backup: " + new Date(bk.at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + (bk.edits ? ". " + bk.edits + (bk.edits === 1 ? " change" : " changes") + " since." : ". Everything is backed up.") : "No backup from this device yet.";
+    v.appendChild(h("section", { class: "panel", id: "backup-panel" }, [
       h("h2", { text: "Backup" }),
-      h("p", { class: "muted", text: "One file with every entry, your schedule, and your templates. Use it to move to another computer or browser, or to keep a safe copy." }),
+      h("p", { class: "muted", text: "Your entries live only on this device. A backup is one file with every entry, your schedule and times, and your templates. Save it somewhere safe, like email, Google Drive, or iCloud." }),
+      h("p", { class: "bk-status" + (bk.edits ? " due" : ""), text: bkLine }),
       h("div", { class: "ex-btns" }, [
-        h("button", { class: "btn btn-quiet", type: "button", text: "Download backup", onclick: async function () {
-          const blob = new Blob([JSON.stringify({ app: "fieldwork-entry-builder", version: 1, savedAt: new Date().toISOString(), days: S.days, settings: S.settings })], { type: "application/json" });
-          const ok = await saveFile("Fieldwork backup " + todayISO() + ".json", blob); if (ok) toast("Backup saved.");
-        } }),
-        h("label", { class: "btn btn-quiet file-btn" }, ["Restore from backup", restoreIn]),
+        h("button", { class: "btn btn-primary", type: "button", text: "Back up now", onclick: function () { backupNow(); } }),
+        restoreButton("Restore from a backup", "btn btn-quiet", function (m) { restoreMsg.textContent = m; }),
         STANDALONE ? (function () { let armed = false; const btn = h("button", { class: "btn btn-danger", type: "button", text: "Clear all entries", onclick: function () {
           if (!armed) { armed = true; btn.textContent = "Tap again to erase every entry"; return; }
-          Object.keys(S.days).forEach(function (d) { delete S.days[d]; }); writeLocal(); S.hideSample = false; render(); toast("All entries cleared.");
+          Object.keys(S.days).forEach(function (d) { delete S.days[d]; }); writeLocal(); markBackedUp(); S.hideSample = false; render(); toast("All entries cleared.");
         } }); return btn; })() : null
       ]),
+      h("p", { class: "muted small", text: "To restore, you can pick a backup file or any spreadsheet you downloaded from this app. Each spreadsheet carries a full backup on a hidden tab." }),
       restoreMsg
     ]));
     v.appendChild(h("p", { class: "muted small storage", id: "storage-status" })); renderStatus();
@@ -2691,10 +2714,10 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       const base = "Ripley Fieldwork " + ds;
       let blob, name;
       if (kind === "xlsx") {
-        blob = await buildRipleyXlsm(window.JSZip, set, RIPLEY_TEMPLATE_B64, { exportedOn: fmtDateShort(todayISO()), macro: false, timeParts: !!window.__TIME_PARTS__ });
+        blob = await buildRipleyXlsm(window.JSZip, set, RIPLEY_TEMPLATE_B64, { exportedOn: fmtDateShort(todayISO()), macro: false, timeParts: !!window.__TIME_PARTS__, backupJson: backupJson() });
         name = base + ".xlsx";
       } else {
-        const inner = await buildRipleyXlsm(window.JSZip, set, RIPLEY_TEMPLATE_B64, { exportedOn: fmtDateShort(todayISO()), timeParts: !!window.__TIME_PARTS__ });
+        const inner = await buildRipleyXlsm(window.JSZip, set, RIPLEY_TEMPLATE_B64, { exportedOn: fmtDateShort(todayISO()), timeParts: !!window.__TIME_PARTS__, backupJson: backupJson() });
         const outer = new window.JSZip(); outer.file(base + ".xlsm", await inner.arrayBuffer());
         blob = await outer.generateAsync({ type: "blob", compression: "DEFLATE" });
         name = base + ".zip";
@@ -2703,11 +2726,95 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       if (ok && exMark) {
         const dates = {}; const ids = {}; set.forEach(function (e) { ids[e.id] = 1; dates[e.date] = 1; });
         Object.keys(dates).forEach(function (d) { (S.days[d] || []).forEach(function (e) { if (ids[e.id]) e.exported = true; }); persistDay(d); });
-        render();
       }
-      if (ok) { toast("Spreadsheet saved."); if ($("#dlg").open) $("#dlg").close(); }
+      if (ok) { markBackedUp(); render(); toast("Spreadsheet saved, with a backup inside."); if ($("#dlg").open) $("#dlg").close(); }
     } catch (e) { toast("Couldn\u2019t build the spreadsheet."); }
     btn.disabled = false; btn.textContent = label;
+  }
+  // ---------- BACKUP ----------
+  const LS_BK = "feb-demo.backup.v1";
+  let bkQuiet = false;
+  function bkGet() { try { const b = JSON.parse(localStorage.getItem(LS_BK) || "null"); if (b && typeof b === "object") return b; } catch (e) {} return { at: 0, edits: 0, snooze: 0 }; }
+  function bkSet(b) { try { localStorage.setItem(LS_BK, JSON.stringify(b)); } catch (e) {} }
+  function noteChange() { if (bkQuiet) return; const b = bkGet(); b.edits = (b.edits || 0) + 1; bkSet(b); }
+  function markBackedUp() { bkSet({ at: Date.now(), edits: 0, snooze: 0 }); }
+  function backupDue() {
+    if (S.mode === "cloud") return false;
+    const b = bkGet(), n = allEntries().length;
+    if (!b.edits || !n || (b.snooze && Date.now() < b.snooze)) return false;
+    return b.edits >= 8 || (b.at ? (Date.now() - b.at) / 864e5 >= 3 : n >= 3);
+  }
+  function backupJson() { return JSON.stringify({ app: "fieldwork-entry-builder", version: 1, savedAt: new Date().toISOString(), days: S.days, settings: S.settings }); }
+  async function backupNow() {
+    const name = "Fieldwork backup " + todayISO() + ".json";
+    const blob = new Blob([backupJson()], { type: "application/json" });
+    const touch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    if (touch && navigator.canShare && typeof File === "function") {
+      try {
+        const file = new File([blob], name, { type: "application/json" });
+        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Fieldwork backup" }); markBackedUp(); render(); toast("Backup saved."); return true; }
+      } catch (e) { if (e && e.name === "AbortError") return false; }
+    }
+    const ok = await saveFile(name, blob);
+    if (ok) { markBackedUp(); render(); toast("Backup saved."); }
+    return ok;
+  }
+  async function backupFromWorkbook(buf) {
+    const wb = new window.ExcelJS.Workbook(); await wb.xlsx.load(buf);
+    const ws = wb.getWorksheet("App Backup"); if (!ws) return null;
+    let txt = "";
+    ws.getColumn(1).eachCell({ includeEmpty: false }, function (c) { const v = c.value; txt += typeof v === "string" ? v : (v && v.richText ? v.richText.map(function (r) { return r.text; }).join("") : (v == null ? "" : String(v))); });
+    return txt ? JSON.parse(txt) : null;
+  }
+  async function restoreFromFile(f) {
+    const name = (f.name || "").toLowerCase();
+    let data;
+    try {
+      if (/\.json$/.test(name) || f.type === "application/json") data = JSON.parse(await f.text());
+      else if (/\.(xlsx|xlsm|zip)$/.test(name)) {
+        if (!window.ExcelJS || !window.JSZip) return "The spreadsheet tool didn\u2019t load. Reload the page and try again.";
+        let buf = await f.arrayBuffer();
+        if (/\.zip$/.test(name)) {
+          const z = await window.JSZip.loadAsync(buf);
+          const inner = Object.keys(z.files).find(function (n) { return /\.xls[xm]$/i.test(n) && !z.files[n].dir; });
+          if (!inner) return "That .zip doesn\u2019t have a spreadsheet from this app inside.";
+          buf = await z.file(inner).async("arraybuffer");
+        }
+        data = await backupFromWorkbook(buf);
+        if (!data) return "This spreadsheet was downloaded before backups were added, so it only has entries. Use Import an existing sheet on the Export tab to bring those in.";
+      } else return "Choose a backup (.json) or a spreadsheet downloaded from this app.";
+    } catch (e) { return "That file isn\u2019t a backup from this app."; }
+    if (!data || typeof data.days !== "object") return "That file isn\u2019t a backup from this app.";
+    const wasEmpty = !allEntries().length;
+    const have = {}; allEntries().forEach(function (e) { have[e.id] = 1; });
+    let added = 0; const touched = {};
+    bkQuiet = true;
+    Object.keys(data.days).forEach(function (d) { (data.days[d] || []).forEach(function (e) { if (!e || !e.id || have[e.id] || !e.date) return; (S.days[e.date] || (S.days[e.date] = [])).push(e); have[e.id] = 1; touched[e.date] = 1; added++; }); });
+    Object.keys(touched).forEach(function (d) { S.days[d].sort(function (a, b) { return a.start.localeCompare(b.start); }); persistDay(d); });
+    let gotSettings = false;
+    if (data.settings && data.settings.schedule) { const a = adoptSettings(data.settings); if (a) { S.settings = a; S.forcePick = false; persistSettings(); gotSettings = true; } }
+    bkQuiet = false;
+    if (wasEmpty) markBackedUp();
+    S.hideSample = true; render();
+    const when = data.savedAt ? " from " + new Date(data.savedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
+    return "Restored " + added + (added === 1 ? " entry" : " entries") + when + (gotSettings ? ", plus your schedule, times, and templates" : "") + "." + (allEntries().length > added && !wasEmpty ? " Entries already here were kept." : "");
+  }
+  function restoreButton(label, cls, onDone) {
+    const inp = h("input", { type: "file", accept: ".json,.xlsx,.xlsm,.zip,application/json", class: "file", "aria-label": label });
+    inp.addEventListener("change", async function () { const f = inp.files[0]; inp.value = ""; if (!f) return; const msg = await restoreFromFile(f); if (onDone) onDone(msg); else toast(msg); });
+    return h("label", { class: cls + " file-btn" }, [label, inp]);
+  }
+  function backupBanner(compact) {
+    if (!backupDue()) return null;
+    const b = bkGet();
+    const head = b.at ? b.edits + (b.edits === 1 ? " change" : " changes") + " since your last backup" : "You haven\u2019t backed up yet";
+    return h("div", { class: "bk-banner" + (compact ? " bk-compact" : ""), role: "status" }, [
+      h("div", { class: "bk-text" }, [h("strong", { text: head }), compact ? null : h("p", { text: "Your entries are saved only on this device. If it\u2019s lost or the browser is cleared, a backup file brings back your entries, schedule, and times." })]),
+      h("div", { class: "bk-btns" }, [
+        h("button", { class: "btn btn-primary btn-sm", type: "button", text: "Back up now", onclick: function () { backupNow(); } }),
+        h("button", { class: "btn btn-quiet btn-sm", type: "button", text: "Later", onclick: function () { const x = bkGet(); x.snooze = Date.now() + 864e5; bkSet(x); render(); } })
+      ])
+    ]);
   }
   async function saveFile(name, blob) {
     let dl = null;
@@ -2880,6 +2987,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     const date = todayISO(), list = nowSchedule();
     const dayH = (S.days[date] || []).reduce(function (s, e) { return s + hoursOf(e); }, 0);
     v.appendChild(h("div", { class: "now-top" }, [h("div", {}, [h("h1", { text: "Now" }), h("p", { class: "muted", style: "margin:0", text: fmtDateLong(date) + " \u00b7 " + fmtH(dayH) + " h logged" })]), h("span", { id: "now-sync", class: "sync-chip " + (S.mode === "cloud" ? "ok" : "wait"), text: S.mode === "cloud" ? "Synced" : (STANDALONE ? "Saved on this device" : "Connecting\u2026") })]));
+    { const bb = backupBanner(true); if (bb) v.appendChild(bb); }
     const dow = new Date().getDay(), weekend = dow === 0 || dow === 6;
     if (!NOW.manual || NOW.idx == null || NOW.idx >= list.length) NOW.idx = weekend ? null : pickNowIndex(list);
     const bar = h("div", { class: "now-bar" });

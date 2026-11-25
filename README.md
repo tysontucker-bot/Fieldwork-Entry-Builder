@@ -23,8 +23,11 @@ Everything works on one phone, and the phone view and the full app share the sam
 
 Everything stays in your own browser on your own device. Nothing is sent anywhere, and no AI is used.
 
-- Entries don't sync between devices. To move them, use **Export > Backup** on one device and **Restore** on the other.
-- Clearing your browser data erases your entries, so download a backup now and then.
+**Entries don't sync between devices, so keep a backup.** If you lose your phone or clear your browser, a backup is how you get everything back: entries, schedule, times, and templates.
+
+- **Every spreadsheet you download is also a backup.** It holds a full copy on a hidden tab, so keep your downloads.
+- The app reminds you when you have changes that aren't backed up. Tap **Back up now** and save the file to email, Google Drive, or iCloud.
+- **On a new phone or computer:** open the app and tap **Restore from a backup** (on the first screen, or under **Export > Backup**). Pick a backup file or any spreadsheet you downloaded from the app.
 
 ## Please note
 

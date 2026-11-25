@@ -8,7 +8,16 @@ A free web app for logging behavior-analytic fieldwork hours and downloading the
 2. On the **Today** tab, tap **Load a sample week**.
 3. Open **Entries** to see the calendar and the **Check** tab.
 4. Open **Export** and download the spreadsheet.
-5. When you're done exploring, go to **Export > Backup > Clear all entries**.
+5. When you're done exploring, tap **Remove sample entries** on the Entries tab. Only the sample week is removed.
+
+## Everyday logging
+
+- **Fill in the day** logs your whole schedule at once with your usual specifics ticked. Untick anything that didn't happen.
+- **Add other work** is for anything off your schedule, like an observation during circle time. It takes over that time slot, and the block around it shrinks to make room, so there's no time clash. Move or delete it and the block gets its time back.
+- **Observed my para** and **coached my para** are on every restricted block. Either one makes the entry unrestricted and adds its codes.
+- **+ Add a skill to this list** puts your own skill (for example, CVC words) on a block's checklist for good, with a box for that day's targets.
+- If you type in the summary yourself, your words are kept. Codes still update, and **Update summary** appears if you tick something new.
+- The **Schedule** tab saves as you go. Use **Duplicate** for blocks that happen more than once a day.
 
 ## Use it on your phone
 
@@ -17,7 +26,7 @@ Everything works on one phone, and the phone view and the full app share the sam
 1. On your phone, open the app link with **#now** on the end (the same address, plus `#now`).
 2. Add it to your home screen (iPhone: Share > Add to Home Screen). From then on, that phone opens straight into the quick phone view.
 3. During the day: the phone view shows what's happening now. Tick what you did and tap **Save**. Use **We did something different** for schedule changes.
-4. To export: tap **Open the full app**, go to **Export**, and download. Email it to yourself or save it to Drive or OneDrive.
+4. To export: tap **Open the full app**, go to **Export**, and tap **Download spreadsheet**. Email it to yourself or save it to Drive or OneDrive.
 
 ## Your data
 

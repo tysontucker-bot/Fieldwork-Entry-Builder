@@ -262,6 +262,11 @@ textarea{resize:vertical;line-height:1.45}
 .regen-alert{display:block;flex-basis:100%;background:var(--r-bg);color:var(--ink);border-left:4px solid var(--r);border-radius:8px;padding:8px 10px;font-size:.9375rem}
 .more-dl{margin-top:10px}
 .add-skill-wrap{margin:6px 0 2px}
+.news-card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--brand);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.news-card h2{font-size:1.0625rem;margin:0 0 8px}
+.news-card ul{margin:0 0 12px;padding-left:1.2em;max-width:70ch}
+.news-card li{margin:0 0 6px}
+.news-card .bk-btns{display:flex;gap:8px;flex-wrap:wrap}
 .add-skill{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .add-skill input{flex:1 1 180px;min-width:0}
 .more-dl summary{cursor:pointer;color:var(--brand);font-weight:700}
@@ -1679,7 +1684,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     if (Q && Q.date === S.date) { renderQuick(v); return; }
     if (lastTodayDate !== S.date) { showWeekendSchedule = false; lastTodayDate = S.date; }
     if (STANDALONE && window.__ROLE_SCHEDULES__ && ((!S.settings.rolePicked && !S.settings.custom) || S.forcePick)) {
-      const pick = function (role) { S.settings.schedule = clone(window.__ROLE_SCHEDULES__[role] || []); S.settings.rolePicked = role; S.forcePick = false; persistSettings(); render(); };
+      const pick = function (role) { try { localStorage.setItem("feb-demo.news.v2", "1"); } catch (e) {} S.settings.schedule = clone(window.__ROLE_SCHEDULES__[role] || []); S.settings.rolePicked = role; S.forcePick = false; persistSettings(); render(); };
       v.appendChild(h("section", { class: "panel role-pick" }, [
         h("h2", { text: "Welcome! What does your day look like?" }),
         h("p", { class: "muted", text: "Pick a starting schedule. You can change every block, time, and activity afterward on the Schedule tab." }),
@@ -1702,7 +1707,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         h("p", { class: "muted small", style: "margin:10px 0 0" }, ["Already have entries on another device? ", restoreButton("Restore from a backup", "link-btn")])
       ]));
     }
-    { const bb = backupBanner(false); if (bb) v.appendChild(bb); }
+    { const nc = newsCard(); if (nc) v.appendChild(nc); else { const bb = backupBanner(false); if (bb) v.appendChild(bb); } }
     Q = null;
     const entries = S.days[S.date] || [];
     const dayH = entries.reduce(function (s, e) { return s + hoursOf(e); }, 0);
@@ -2920,9 +2925,10 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   function markBackedUp() { bkSet({ at: Date.now(), edits: 0, snooze: 0 }); }
   function backupDue() {
     if (S.mode === "cloud") return false;
-    const b = bkGet(), n = allEntries().length;
-    if (!b.edits || !n || (b.snooze && Date.now() < b.snooze)) return false;
-    return b.edits >= 8 || (b.at ? (Date.now() - b.at) / 864e5 >= 3 : n >= 3);
+    const b = bkGet(), n = allEntries().length - sampleEntries().length;
+    if (n <= 0 || (b.snooze && Date.now() < b.snooze)) return false;
+    if (!b.at) return n >= 3;
+    return !!b.edits && (b.edits >= 8 || (Date.now() - b.at) / 864e5 >= 3);
   }
   function backupJson() { return JSON.stringify({ app: "fieldwork-entry-builder", version: 1, savedAt: new Date().toISOString(), days: S.days, settings: S.settings }); }
   async function backupNow() {
@@ -2983,6 +2989,29 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     const inp = h("input", { type: "file", accept: ".json,.xlsx,.xlsm,.zip,application/json", class: "file", "aria-label": label });
     inp.addEventListener("change", async function () { const f = inp.files[0]; inp.value = ""; if (!f) return; const msg = await restoreFromFile(f); if (onDone) onDone(msg); else toast(msg); });
     return h("label", { class: cls + " file-btn" }, [label, inp]);
+  }
+  const LS_NEWS = "feb-demo.news.v2";
+  function newsCard() {
+    let seen = false; try { seen = localStorage.getItem(LS_NEWS) === "1"; } catch (e) {}
+    if (seen || allEntries().length - sampleEntries().length <= 0) return null;
+    const done = function () { try { localStorage.setItem(LS_NEWS, "1"); } catch (e) {} render(); };
+    const samples = sampleEntries().length;
+    const items = [
+      ["Backups.", " Your entries live only on this device. Every spreadsheet you download now holds a full backup, and Restore brings everything back on a new phone or computer."],
+      ["Other work takes over its time.", " Add an observation in the middle of Math and Math shrinks around it, with no time clash."],
+      ["Observed my para.", " A new checklist option next to coached my para, with its own wording and codes."],
+      ["Add a skill.", " Tap + Add a skill to this list to put your own skill, like CVC words, on a block\u2019s checklist for good."],
+      ["Your schedule saves itself.", " No Save button to forget on the Schedule tab, and each block has a Duplicate button."]
+    ];
+    if (samples) items.push(["Sample entries.", " " + samples + " entries from the sample week are mixed in with yours. You can remove them from the Entries tab."]);
+    return h("section", { class: "news-card", "aria-label": "What\u2019s new" }, [
+      h("h2", { text: "What\u2019s new in this update" }),
+      h("ul", {}, items.map(function (x) { return h("li", {}, [h("strong", { text: x[0] }), x[1]]); })),
+      h("div", { class: "bk-btns" }, [
+        bkGet().at ? null : h("button", { class: "btn btn-primary btn-sm", type: "button", text: "Back up now", onclick: async function () { if (await backupNow()) done(); } }),
+        h("button", { class: bkGet().at ? "btn btn-primary btn-sm" : "btn btn-quiet btn-sm", type: "button", text: "Got it", onclick: done })
+      ])
+    ]);
   }
   function backupBanner(compact) {
     if (!backupDue()) return null;

@@ -258,6 +258,8 @@ textarea{resize:vertical;line-height:1.45}
 .custom-code{display:flex;gap:8px}
 .regen{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .form-err{color:var(--danger);font-weight:700;margin:10px 0 0;min-height:0}
+.dlg-actions .form-err{flex-basis:100%;margin:0 0 2px}
+.dlg-actions .form-err:empty{display:none}
 .form-err:empty{display:none}
 .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;padding-bottom:18px}
 .tpl{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;border:1px solid var(--line);background:var(--sunk);border-radius:12px;padding:12px;cursor:pointer}
@@ -1391,7 +1393,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   }
   function upsertEntry(e, keepStamp) {
     if (e.picks && e.picks._carry) delete e.picks._carry;
-    if (!keepStamp) e.updatedAt = Date.now();
+    if (!keepStamp) { e.updatedAt = Date.now(); if (!bkQuiet) delete e.sample; }
     Object.keys(S.days).forEach(function (d) {
       const arr = S.days[d]; const i = arr.findIndex(function (x) { return x.id === e.id; });
       if (i >= 0 && d !== e.date) { arr.splice(i, 1); if (!arr.length) delete S.days[d]; persistDay(d); }
@@ -1420,25 +1422,43 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
     }
     return pairs;
   }
-  // Trims or splits logged schedule blocks that a one-off entry overlaps, so the one-off replaces that time.
-  function makeRoom(o, hits) {
-    const os = mins(o.start), oe = mins(o.end), sched = daySchedule(o.date);
-    const before = hits.map(clone), made = [], notes = [];
-    hits.forEach(function (x) {
-      const xs = mins(x.start), xe = mins(x.end), base = baseIdOf(x.blockId), parts = [];
-      if (xs < os) parts.push([xs, Math.min(os, xe)]);
-      if (xe > oe) parts.push([Math.max(oe, xs), xe]);
-      removeEntry(x);
+  // Blocks a one-off entry overlaps remember their original time (e.room) and are re-fit around all one-offs on that day.
+  // Moving or deleting the one-off gives the time back to the block.
+  function isOneOff(e) { return !e.blockId || !blockDef(e.blockId); }
+  function healRoom(date) {
+    const list = (S.days[date] || []).slice();
+    const wins = list.filter(function (e) { return isOneOff(e) && e.start && e.end; }).map(function (e) { return [mins(e.start), mins(e.end)]; });
+    const groups = {};
+    list.forEach(function (e) { if (e.room && !isOneOff(e)) (groups[e.room.id] = groups[e.room.id] || []).push(e); });
+    Object.keys(groups).forEach(function (gid) {
+      const g = groups[gid]; if (g.some(function (e) { return e.exported; })) return;
+      const r = g[0].room;
+      let parts = [[mins(r.start), mins(r.end)]];
+      wins.forEach(function (w) { const out = []; parts.forEach(function (pr) { if (w[1] <= pr[0] || w[0] >= pr[1]) { out.push(pr); return; } if (pr[0] < w[0]) out.push([pr[0], w[0]]); if (pr[1] > w[1]) out.push([w[1], pr[1]]); }); parts = out; });
+      const cur = g.map(function (e) { return [mins(e.start), mins(e.end)]; }).sort(function (x, y) { return x[0] - y[0]; });
+      if (JSON.stringify(cur) === JSON.stringify(parts)) return;
+      const tmpl = clone(g.find(function (e) { return e.id === r.id; }) || g[0]);
+      g.forEach(removeEntry);
       parts.forEach(function (pr, k) {
-        const piece = sched.find(function (b) { return baseIdOf(b.id) === base && mins(b.start) < pr[1] && pr[0] < mins(b.end); });
-        const n = clone(x); if (k > 0) n.id = uid();
-        n.start = hmOf(pr[0]); n.end = hmOf(pr[1]); n.blockId = piece ? piece.id : x.blockId + "~" + (k + 1);
-        upsertEntry(n, true); made.push(n.id);
+        const n = clone(tmpl); n.id = k === 0 ? r.id : uid(); n.start = hmOf(pr[0]); n.end = hmOf(pr[1]);
+        if (parts.length === 1 && pr[0] === mins(r.start) && pr[1] === mins(r.end)) { n.blockId = r.blockId; delete n.room; }
+        else { n.blockId = parts.length === 1 ? r.blockId : r.blockId + "~" + (k + 1); n.room = r; }
+        upsertEntry(n, true);
       });
-      notes.push(parts.length ? x.activity + " now " + parts.map(function (pr) { return fmtTime(hmOf(pr[0])) + "\u2013" + fmtTime(hmOf(pr[1])); }).join(" and ") : x.activity + " removed");
+    });
+  }
+  function makeRoom(o, hits) {
+    const date = o.date, before = clone((S.days[date] || []).filter(function (e) { return !isOneOff(e); }));
+    const keys = hits.map(function (x) { if (!x.room) { x.room = { id: x.id, blockId: x.blockId, start: x.start, end: x.end }; upsertEntry(x, true); } return { key: x.room.id, name: x.activity }; });
+    healRoom(date);
+    const seen = {}, notes = [];
+    keys.forEach(function (k) {
+      if (seen[k.key]) return; seen[k.key] = 1;
+      const parts = (S.days[date] || []).filter(function (e) { return (e.room && e.room.id === k.key) || e.id === k.key; }).sort(function (x, y) { return x.start.localeCompare(y.start); });
+      notes.push(parts.length ? k.name + " now " + parts.map(function (e) { return fmtTime(e.start) + "\u2013" + fmtTime(e.end); }).join(" and ") : k.name + " removed");
     });
     return { text: notes.join("; "), undo: function () {
-      const date = o.date; (S.days[date] || []).slice().forEach(function (e) { if (made.indexOf(e.id) >= 0) removeEntry(e); });
+      (S.days[date] || []).slice().forEach(function (e) { if (!isOneOff(e)) removeEntry(e); });
       before.forEach(function (e) { upsertEntry(e, true); });
     } };
   }
@@ -1461,7 +1481,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       .map(function (e) { return { start: e.start, end: e.end }; });
   }
   function daySchedule(date) {
-    const ch = dayChanges(date).concat(oneOffWindows(date)); if (!ch.length) return S.settings.schedule;
+    const ch = dayChanges(date).concat(oneOffWindows(date)); if (!ch.length) return claimPieces(date, S.settings.schedule);
     let list = S.settings.schedule.map(function (b) { return [b, mins(b.start), mins(b.end), b.id]; });
     ch.forEach(function (c) {
       const cs = mins(c.start), ce = mins(c.end), out = [];
@@ -1474,9 +1494,24 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       });
       list = out;
     });
-    return list.map(function (x) {
+    const out = list.map(function (x) {
       const b = x[0]; if (x[1] === mins(b.start) && x[2] === mins(b.end) && x[3] === b.id) return b;
       return Object.assign(clone(b), { id: x[3], start: hmOf(x[1]), end: hmOf(x[2]), trimmed: true });
+    });
+    return claimPieces(date, out);
+  }
+  // Match each schedule piece to the logged entry it overlaps (same block), so ids line up however the day was edited.
+  function claimPieces(date, out) {
+    const logged = (S.days[date] || []).filter(function (e) { return e.blockId && !isOneOff(e); });
+    if (!logged.length) return out;
+    const taken = {};
+    out.forEach(function (p) { if (logged.some(function (e) { return e.blockId === p.id; })) taken[p.id] = 1; });
+    return out.map(function (p) {
+      if (taken[p.id] && logged.some(function (e) { return e.blockId === p.id; })) return p;
+      const base = baseIdOf(p.id), ps = mins(p.start), pe = mins(p.end);
+      const e = logged.find(function (x) { return !taken[x.blockId] && baseIdOf(x.blockId) === base && mins(x.start) < pe && ps < mins(x.end); });
+      if (!e) return p;
+      taken[e.blockId] = 1; return Object.assign(clone(p), { id: e.blockId });
     });
   }
   function addChange(date, c) { S.settings.changes = S.settings.changes || {}; (S.settings.changes[date] = S.settings.changes[date] || []).push(c); S.settings.custom = true; persistSettings(); }
@@ -1716,7 +1751,8 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       ]));
     });
     v.appendChild(list);
-    const others = entries.filter(function (e) { return !e.blockId || !blockDef(e.blockId); });
+    const shownIds = {}; daySchedule(S.date).forEach(function (b) { shownIds[b.id] = 1; });
+    const others = entries.filter(function (e) { return !e.blockId || !blockDef(e.blockId) || !shownIds[e.blockId]; });
     if (others.length) {
       v.appendChild(h("h3", { class: "sub", text: "Other work this day" }));
       const ol = h("ul", { class: "entry-list" }); others.forEach(function (e) { ol.appendChild(entryRow(e, false)); }); v.appendChild(ol);
@@ -2246,29 +2282,40 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
       body.appendChild(catRow);
     }
     if (def) body.appendChild(h("label", { class: "check-line usual-line" }, [h("input", { type: "checkbox", onchange: function () { makeUsual = this.checked; } }), h("span", { text: "Make these my usual specifics for " + def.name })]));
-    body.appendChild(err);
     if (d.summaryEdited) sumBox.value = d.summary;
 
     // actions
     let delArmed = false;
     const delBtn = isNew ? null : h("button", { class: "btn btn-danger", type: "button", text: "Delete", onclick: function () {
       if (!delArmed) { delArmed = true; delBtn.textContent = "Tap again to delete"; return; }
-      const orig = allEntries().find(function (x) { return x.id === d.id; }); if (orig) removeEntry(orig); $("#dlg").close(); render();
-      toast("Entry deleted.", { label: "Undo", run: function () { upsertEntry(orig, true); render(); } });
+      const orig = allEntries().find(function (x) { return x.id === d.id; }); if (orig) { removeEntry(orig); if (isOneOff(orig)) healRoom(orig.date); } $("#dlg").close(); render();
+      toast("Entry deleted.", { label: "Undo", run: function () {
+        upsertEntry(orig, true);
+        if (isOneOff(orig)) { const hits = clashesFor(orig).filter(function (x) { return !isOneOff(x) && !x.exported; }); if (hits.length) makeRoom(orig, hits); else healRoom(orig.date); }
+        render(); } });
     } });
     body.appendChild(h("div", { class: "dlg-actions" }, [
+      err,
       delBtn,
       h("button", { class: "btn btn-quiet", type: "button", text: "Copy summary", onclick: function () { copyText(sumBox.value); } }),
       def ? null : h("button", { class: "btn btn-quiet", type: "button", text: "Save & add another", onclick: function () { doSave(true); } }),
       h("button", { class: "btn btn-primary", type: "button", text: "Save entry", onclick: function () { doSave(false); } })
     ]));
-    let clashOk = false;
+    let clashOk = false, ampmOk = false;
     function doSave(another) {
         if (!d.activity.trim()) return (err.textContent = "Add an activity name.");
         if (!d.date) return (err.textContent = "Pick a date.");
         if (!d.start || !d.end) return (err.textContent = "Add a start and end time.");
         if (mins(d.end) <= mins(d.start)) return (err.textContent = "End time needs to be after the start time.");
         if (!sumBox.value.trim()) return (err.textContent = "The summary is empty.");
+        if (!ampmOk) {
+          const sch = S.settings.schedule, ds = Math.min.apply(null, sch.map(function (b) { return mins(b.start); })), de = Math.max.apply(null, sch.map(function (b) { return mins(b.end); }));
+          const st = mins(d.start), flip = st >= 720 ? -720 : 720;
+          if (sch.length && isWeekday(d.date) && (st < ds || st >= de) && (st >= 18 * 60 || st < 6 * 60) && st + flip >= ds && mins(d.end) + flip <= de && mins(d.end) + flip > st + flip) {
+            ampmOk = true;
+            return (err.textContent = fmtTime(d.start) + " is outside your school day. Did you mean " + fmtTime(hmOf(st + flip)) + "? Fix the time, or tap Save again to keep it.");
+          }
+        }
         const cl0 = clashesFor(d);
         const roomFor = def ? [] : cl0.filter(function (x) { return x.blockId && blockDef(x.blockId) && !x.exported; });
         const cl = cl0.filter(function (x) { return roomFor.indexOf(x) < 0; });
@@ -2283,6 +2330,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
         if (prev && prev.exported && (prev.summary !== d.summary || prev.start !== d.start || prev.end !== d.end || prev.date !== d.date || prev.type !== d.type || prev.activity !== d.activity)) d.exported = false;
         upsertEntry(d);
         const room = roomFor.length ? makeRoom(d, roomFor) : null;
+        if (!room && !def) { healRoom(d.date); if (prev && prev.date !== d.date) healRoom(prev.date); }
         if (def && makeUsual) { def.usual = { areas: d.picks.areas.slice(), options: d.picks.options.slice(), others: d.picks.others.slice(), word: d.picks.word || "" }; S.settings.custom = true; persistSettings(); }
         else if (def) rememberWord(def.id, d.picks);
         let msg = "Entry saved.";
@@ -2796,7 +2844,7 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   }
   // ---------- BACKUP ----------
   const LS_BK = "feb-demo.backup.v1";
-  let bkQuiet = false;
+  var bkQuiet = false;
   function bkGet() { try { const b = JSON.parse(localStorage.getItem(LS_BK) || "null"); if (b && typeof b === "object") return b; } catch (e) {} return { at: 0, edits: 0, snooze: 0 }; }
   function bkSet(b) { try { localStorage.setItem(LS_BK, JSON.stringify(b)); } catch (e) {} }
   function noteChange() { if (bkQuiet) return; const b = bkGet(); b.edits = (b.edits || 0) + 1; bkSet(b); }

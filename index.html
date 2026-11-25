@@ -4,7 +4,7 @@
 <script>window.__STANDALONE__ = true; window.__TIME_PARTS__ = true;</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fieldwork Entry Builder (Demo)</title>
+<title>FieldDay (Demo)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
@@ -403,7 +403,7 @@ body.has-session #toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
 <body>
 <header class="top">
   <div class="wrap">
-    <div class="top-row"><h1>Fieldwork Entry Builder<span class="demo-chip">Demo</span></h1><span id="sync-chip" class="sync-chip wait" role="status">Connecting…</span></div>
+    <div class="top-row"><h1>FieldDay<span class="demo-chip">Demo</span></h1><span id="sync-chip" class="sync-chip wait" role="status">Connecting…</span></div>
     <p id="local-warn" class="local-warn" hidden>You’re viewing a copy that isn’t connected to your Claude account, so the hours shown may be out of date and anything you add stays in this browser. Open your published link while signed in to Claude to see your saved hours.</p>
     <div class="totals" aria-label="Fieldwork totals">
       <div class="tot"><b id="tot-all">0 h</b><span>All fieldwork</span></div>
@@ -804,7 +804,7 @@ DEFAULT_TEMPLATES.forEach(function (t) { t.category = TEMPLATE_CAT_BY_ID[t.id] |
 function buildRipleyWorkbook(ExcelJS, entries, opts) {
   opts = opts || {};
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Ripley Entry Builder";
+  wb.creator = "FieldDay";
   const ws = wb.addWorksheet("Ripley Fieldwork", { views: [{ state: "frozen", ySplit: 1 }] });
   ws.columns = [
     { header: "Date", key: "date", width: 12 },
@@ -992,7 +992,7 @@ async function buildRipleyXlsm(JSZip, entries, templateB64, opts) {
   const rangeTxt = dates.length ? fmtD(dates[0]) + " to " + fmtD(dates[dates.length - 1]) : "No entries";
   const aRow = function (r, cells, ht) { return '<row r="' + r + '" spans="1:4"' + (ht ? ' ht="' + ht + '"' : "") + ' x14ac:dyDescent="0.25">' + cells.join("") + "</row>"; };
   let a = aRow(1, [str("A1", 5, "Source"), str("B1", 5, "Rows in source"), str("C1", 5, "Duplicate rows removed"), str("D1", 5, "Hours represented")]);
-  a += aRow(2, [str("A2", 5, "Ripley Entry Builder"), num("B2", 5, sorted.length), num("C2", 5, 0), num("D2", 5, tot)]);
+  a += aRow(2, [str("A2", 5, "FieldDay"), num("B2", 5, sorted.length), num("C2", 5, 0), num("D2", 5, tot)]);
   a += aRow(3, [str("A3", 5, "Combined"), num("B3", 5, sorted.length), str("C3", 5, "0"), num("D3", 5, tot)]);
   a += aRow(4, [empty("A4", 5), empty("B4", 5), empty("C4", 5), empty("D4", 5)]);
   a += aRow(5, [str("A5", 5, "Date range"), str("B5", 5, rangeTxt), empty("C5", 5), empty("D5", 5)], 30);
@@ -1010,7 +1010,7 @@ async function buildRipleyXlsm(JSZip, entries, templateB64, opts) {
   s += sRow(6, [str("A6", 5, "Unique Entries"), fml("B6", 5, "COUNTA('Ripley Fieldwork'!A:A)-1", sorted.length)]);
   s += sRow(7, [empty("A7", 5), empty("B7", 5)]);
   s += sRow(8, [str("A8", 5, "Red summary cells"), str("B8", 5, "A red Summary cell means the TCO/Ethics mapping is a best-fit mapping that should be verified by the supervising BCBA.")], 30);
-  s += sRow(9, [str("A9", 5, "Source basis"), str("B9", 5, "All entries were exported from Ripley Entry Builder. No additional hours were invented.")], 30);
+  s += sRow(9, [str("A9", 5, "Source basis"), str("B9", 5, "All entries were exported from FieldDay. No additional hours were invented.")], 30);
   zip.file("xl/worksheets/sheet3.xml", head + '<sheetPr codeName="Sheet3"/><dimension ref="A1:B9"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15" x14ac:dyDescent="0.25"/><cols><col min="1" max="1" width="28" customWidth="1"/><col min="2" max="2" width="110" customWidth="1"/></cols><sheetData>' + s + "</sheetData>" + margins);
 
   // Sheet 5: Daily Log (extra tab at the end)
@@ -1086,7 +1086,7 @@ async function buildRipleyXlsm(JSZip, entries, templateB64, opts) {
     const bj = String(opts.backupJson).replace(/[\u007f-\uffff]/g, function (c) { return "\\u" + ("000" + c.charCodeAt(0).toString(16)).slice(-4); });
     const parts = []; for (let i = 0; i < bj.length; i += 30000) parts.push(bj.slice(i, i + 30000));
     let bx = "";
-    parts.forEach(function (t, i) { bx += '<row r="' + (i + 1) + '">' + '<c r="A' + (i + 1) + '" t="inlineStr"><is><t xml:space="preserve">' + esc(t) + "</t></is></c>" + (i === 0 ? '<c r="B1" t="inlineStr"><is><t>Backup for the Fieldwork Entry Builder. Leave this tab as is.</t></is></c>' : "") + "</row>"; });
+    parts.forEach(function (t, i) { bx += '<row r="' + (i + 1) + '">' + '<c r="A' + (i + 1) + '" t="inlineStr"><is><t xml:space="preserve">' + esc(t) + "</t></is></c>" + (i === 0 ? '<c r="B1" t="inlineStr"><is><t>Backup for FieldDay. Leave this tab as is.</t></is></c>' : "") + "</row>"; });
     zip.file("xl/worksheets/sheet8.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="A1:B' + Math.max(1, parts.length) + '"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><sheetData>' + bx + '</sheetData><pageMargins left="0.75" right="0.75" top="1" bottom="1" header="0.5" footer="0.5"/></worksheet>');
     let wb8 = await zip.file("xl/workbook.xml").async("string");
     wb8 = wb8.replace("</sheets>", '<sheet name="App Backup" sheetId="8" state="hidden" r:id="rId13"/></sheets>');
@@ -2932,13 +2932,13 @@ if (typeof module !== "undefined") module.exports = { parseRipleyWorkbook };
   }
   function backupJson() { return JSON.stringify({ app: "fieldwork-entry-builder", version: 1, savedAt: new Date().toISOString(), days: S.days, settings: S.settings }); }
   async function backupNow() {
-    const name = "Fieldwork backup " + todayISO() + ".json";
+    const name = "FieldDay backup " + todayISO() + ".json";
     const blob = new Blob([backupJson()], { type: "application/json" });
     const touch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
     if (touch && navigator.canShare && typeof File === "function") {
       try {
         const file = new File([blob], name, { type: "application/json" });
-        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Fieldwork backup" }); markBackedUp(); render(); toast("Backup saved."); return true; }
+        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "FieldDay backup" }); markBackedUp(); render(); toast("Backup saved."); return true; }
       } catch (e) { if (e && e.name === "AbortError") return false; }
     }
     const ok = await saveFile(name, blob);

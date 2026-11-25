@@ -1,6 +1,6 @@
-# Fieldwork Entry Builder (Demo)
+# FieldDay (Demo)
 
-A free web app for logging behavior-analytic fieldwork hours and downloading them as a spreadsheet ready to enter into Ripley. No account needed.
+FieldDay is a free web app for logging behavior-analytic fieldwork hours and downloading them as a spreadsheet ready to enter into Ripley. No account needed.
 
 ## Take the tour
 
